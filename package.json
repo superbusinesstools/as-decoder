@@ -1,0 +1,32 @@
+{
+	"name": "as-decoder",
+	"version": "1.0.0",
+	"description": "Web crawler queue system",
+	"main": "dist/server.js",
+	"scripts": {
+		"build": "tsc",
+		"start": "node dist/server.js",
+		"dev": "ts-node src/server.ts",
+		"test": "NODE_ENV=test jest",
+		"test:watch": "NODE_ENV=test jest --watch",
+		"test:coverage": "NODE_ENV=test jest --coverage"
+	},
+	"dependencies": {
+		"@types/better-sqlite3": "^7.6.13",
+		"@types/express": "^5.0.3",
+		"@types/node": "^24.2.1",
+		"better-sqlite3": "^12.2.0",
+		"dotenv": "^17.2.1",
+		"express": "^5.1.0",
+		"joi": "^18.0.0",
+		"typescript": "^5.9.2"
+	},
+	"devDependencies": {
+		"@types/jest": "^30.0.0",
+		"@types/supertest": "^6.0.3",
+		"jest": "^30.0.5",
+		"supertest": "^7.1.4",
+		"ts-jest": "^29.4.1",
+		"ts-node": "^10.9.2"
+	}
+}
