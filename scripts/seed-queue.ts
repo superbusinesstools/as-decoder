@@ -10,19 +10,19 @@ const BASE_URL = `http://localhost:${PORT}`;
 // Predetermined test data
 const testCompanies = [
   {
-    company_id: 'acme-corp-001',
-    website_url: 'https://www.acme-corp.com',
-    source_url: 'https://www.linkedin.com/company/acme-corp'
+    company_id: 'absurd-snacks-001',
+    website_url: 'https://absurdsnacks.com/',
+    source_url: 'https://www.linkedin.com/company/absurd-snacks'
   },
   {
-    company_id: 'techstart-002',
-    website_url: 'https://www.techstart.io',
-    source_url: 'https://www.crunchbase.com/organization/techstart'
+    company_id: 'drinks-arilla-002',
+    website_url: 'https://www.drinksarilla.com',
+    source_url: 'https://www.crunchbase.com/organization/drinks-arilla'
   },
   {
-    company_id: 'globalsoft-003',
-    website_url: 'https://www.globalsoft.net',
-    source_url: 'https://www.glassdoor.com/Overview/globalsoft'
+    company_id: 'dr-petes-003',
+    website_url: 'https://www.dr-petes.com/',
+    source_url: 'https://www.glassdoor.com/Overview/dr-petes'
   }
 ];
 
@@ -36,12 +36,12 @@ async function sendToQueue(company: typeof testCompanies[0]) {
       body: JSON.stringify(company)
     });
 
-    const data = await response.json();
+    const data = await response.json() as any;
     
     if (response.ok) {
       console.log(`✅ Successfully queued: ${company.company_id}`);
-      console.log(`   Status: ${data.data.status}`);
-      console.log(`   ID: ${data.data.id}`);
+      console.log(`   Status: ${data.data?.status}`);
+      console.log(`   ID: ${data.data?.id}`);
     } else {
       console.error(`❌ Failed to queue ${company.company_id}:`);
       console.error(`   Status: ${response.status}`);

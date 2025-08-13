@@ -7,13 +7,17 @@
 		"build": "tsc",
 		"start": "node dist/server.js",
 		"dev": "ts-node src/server.ts",
+		"dev:fresh": "./scripts/reset-db.sh && npm run dev",
 		"test": "NODE_ENV=test jest",
 		"test:watch": "NODE_ENV=test jest --watch",
 		"test:coverage": "NODE_ENV=test jest --coverage",
 		"seed": "ts-node scripts/seed-queue.ts",
-		"seed:bash": "./scripts/seed-queue.sh"
+		"seed:bash": "./scripts/seed-queue.sh",
+		"reset": "./scripts/reset-db.sh",
+		"scrape": "./scripts/scraper/run_scraper.sh"
 	},
 	"dependencies": {
+		"@mozilla/readability": "^0.5.0",
 		"@types/better-sqlite3": "^7.6.13",
 		"@types/express": "^5.0.3",
 		"@types/node": "^24.2.1",
@@ -21,10 +25,13 @@
 		"dotenv": "^17.2.1",
 		"express": "^5.1.0",
 		"joi": "^18.0.0",
+		"jsdom": "^25.0.1",
+		"puppeteer": "^23.8.0",
 		"typescript": "^5.9.2"
 	},
 	"devDependencies": {
 		"@types/jest": "^30.0.0",
+		"@types/jsdom": "^21.1.7",
 		"@types/supertest": "^6.0.3",
 		"jest": "^30.0.5",
 		"supertest": "^7.1.4",

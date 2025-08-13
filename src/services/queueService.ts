@@ -69,7 +69,15 @@ export class QueueService {
       VALUES (@company_id, @step, @status, @message, @data)
     `);
 
-    const info = stmt.run(log);
+    const logData = {
+      company_id: log.company_id,
+      step: log.step,
+      status: log.status,
+      message: log.message || null,
+      data: log.data || null
+    };
+
+    const info = stmt.run(logData);
     
     const getLog = db.prepare('SELECT * FROM process_logs WHERE id = ?');
     return getLog.get(info.lastInsertRowid) as ProcessLog;

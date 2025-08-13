@@ -18,6 +18,8 @@ export function initializeDatabase() {
       website_url TEXT NOT NULL,
       source_url TEXT NOT NULL,
       status TEXT DEFAULT 'pending' CHECK(status IN ('pending', 'processing', 'completed', 'failed')),
+      raw_data TEXT,
+      processed_data TEXT,
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
       updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
     );

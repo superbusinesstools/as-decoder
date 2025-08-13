@@ -11,49 +11,49 @@ echo "🚀 Sending test companies to queue endpoint at ${BASE_URL}/api/queue"
 echo ""
 
 # Company 1
-echo "Processing: acme-corp-001"
+echo "Processing: absurd-snacks-001"
 curl -X POST "${BASE_URL}/api/queue" \
   -H "Content-Type: application/json" \
   -d '{
-    "company_id": "acme-corp-001",
-    "website_url": "https://www.acme-corp.com",
-    "source_url": "https://www.linkedin.com/company/acme-corp"
+    "company_id": "absurd-snacks-001",
+    "website_url": "https://absurdsnacks.com/",
+    "source_url": "https://www.linkedin.com/company/absurd-snacks"
   }' \
-  --silent --show-error | jq '.' || echo "Failed to queue acme-corp-001"
+  --silent --show-error | jq '.' || echo "Failed to queue absurd-snacks-001"
 
 echo ""
 echo "---"
 
 # Company 2
-echo "Processing: techstart-002"
+echo "Processing: drinks-arilla-002"
 curl -X POST "${BASE_URL}/api/queue" \
   -H "Content-Type: application/json" \
   -d '{
-    "company_id": "techstart-002",
-    "website_url": "https://www.techstart.io",
-    "source_url": "https://www.crunchbase.com/organization/techstart"
+    "company_id": "drinks-arilla-002",
+    "website_url": "https://www.drinksarilla.com",
+    "source_url": "https://www.crunchbase.com/organization/drinks-arilla"
   }' \
-  --silent --show-error | jq '.' || echo "Failed to queue techstart-002"
+  --silent --show-error | jq '.' || echo "Failed to queue drinks-arilla-002"
 
 echo ""
 echo "---"
 
 # Company 3
-echo "Processing: globalsoft-003"
+echo "Processing: dr-petes-003"
 curl -X POST "${BASE_URL}/api/queue" \
   -H "Content-Type: application/json" \
   -d '{
-    "company_id": "globalsoft-003",
-    "website_url": "https://www.globalsoft.net",
-    "source_url": "https://www.glassdoor.com/Overview/globalsoft"
+    "company_id": "dr-petes-003",
+    "website_url": "https://www.dr-petes.com/",
+    "source_url": "https://www.glassdoor.com/Overview/dr-petes"
   }' \
-  --silent --show-error | jq '.' || echo "Failed to queue globalsoft-003"
+  --silent --show-error | jq '.' || echo "Failed to queue dr-petes-003"
 
 echo ""
 echo "---"
 echo ""
 echo "✨ All companies have been sent!"
 echo "📊 Check status with:"
-echo "  curl ${BASE_URL}/api/queue/acme-corp-001 | jq '.'"
-echo "  curl ${BASE_URL}/api/queue/techstart-002 | jq '.'"
-echo "  curl ${BASE_URL}/api/queue/globalsoft-003 | jq '.'"
+echo "  curl ${BASE_URL}/api/queue/absurd-snacks-001 | jq '.'"
+echo "  curl ${BASE_URL}/api/queue/drinks-arilla-002 | jq '.'"
+echo "  curl ${BASE_URL}/api/queue/dr-petes-003 | jq '.'"

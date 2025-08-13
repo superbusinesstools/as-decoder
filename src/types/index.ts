@@ -10,6 +10,8 @@ export interface Company {
   website_url: string;
   source_url: string;
   status: 'pending' | 'processing' | 'completed' | 'failed';
+  raw_data?: string;
+  processed_data?: string;
   created_at: string;
   updated_at: string;
 }
