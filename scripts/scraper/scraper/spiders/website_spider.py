@@ -4,6 +4,7 @@ from scrapy.linkextractors import LinkExtractor
 from scrapy.spiders import CrawlSpider, Rule
 from scraper.items import ScrapedPageItem
 import re
+import time
 from bs4 import BeautifulSoup
 
 class WebsiteSpider(CrawlSpider):
@@ -69,7 +70,10 @@ class WebsiteSpider(CrawlSpider):
     def parse_page(self, response):
         """Parse individual pages and extract content"""
         
-        self.logger.info(f"parse_page called for: {response.url}")
+        # Record fetch time (time from request to response)
+        fetch_time = response.meta.get('download_latency', 0)
+        
+        self.logger.info(f"parse_page called for: {response.url} (fetch took {fetch_time:.2f}s)")
         
         # Check if we've reached the page limit
         self.pages_crawled += 1
@@ -81,8 +85,10 @@ class WebsiteSpider(CrawlSpider):
         parsed_url = urlparse(response.url)
         path = parsed_url.path or '/'
         
-        # Extract main content
+        # Time the content extraction
+        parse_start = time.time()
         content = self.extract_content(response)
+        parse_time = time.time() - parse_start
         
         # Get page title
         title = response.css('title::text').get()
@@ -91,6 +97,8 @@ class WebsiteSpider(CrawlSpider):
         
         # Get current depth from meta
         depth = response.meta.get('depth', 0)
+        
+        self.logger.info(f"Page {response.url}: fetch={fetch_time:.2f}s, parse={parse_time:.2f}s")
         
         yield ScrapedPageItem(
             url=response.url,

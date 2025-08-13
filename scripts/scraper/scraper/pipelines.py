@@ -1,20 +1,32 @@
 import json
 import re
+import time
+import unicodedata
 from itemadapter import ItemAdapter
 
 class ScrapedDataPipeline:
     def __init__(self):
         self.items = []
         self.all_emails = set()
+        self.seen_urls = set()  # Track seen URLs to avoid duplicates
+        self.start_time = time.time()
 
     def process_item(self, item, spider):
         adapter = ItemAdapter(item)
+        
+        # Check for duplicate URLs
+        url = adapter.get('url', '')
+        if url in self.seen_urls:
+            spider.logger.debug(f"Skipping duplicate URL: {url}")
+            return item
+        self.seen_urls.add(url)
         
         # Clean and process the content
         content = adapter.get('content', '')
         if content:
             # Preserve line breaks and structure
             content = self.clean_text(content)
+            content = self.handle_unicode(content)
             adapter['content'] = content
         
         # Extract emails from content
@@ -26,8 +38,14 @@ class ScrapedDataPipeline:
         return item
 
     def close_spider(self, spider):
+        # Calculate total time
+        total_time = time.time() - self.start_time
+        
         # Format content as an array of page contents
         content_array = self.format_content_array()
+        
+        # Log timing summary
+        spider.logger.info(f"Scraping completed: {len(self.items)} pages in {total_time:.2f}s")
         
         result = {
             'success': True,
@@ -60,6 +78,36 @@ class ScrapedDataPipeline:
         result = re.sub(r'\n{3,}', '\n\n', result)
         
         return result.strip()
+    
+    def handle_unicode(self, text):
+        """Convert Unicode characters to ASCII equivalents where possible"""
+        if not text:
+            return ''
+        
+        # Common replacements
+        replacements = {
+            '\u2022': '*',  # Bullet point
+            '\u2019': "'",  # Right single quotation mark
+            '\u2018': "'",  # Left single quotation mark 
+            '\u201c': '"',  # Left double quotation mark
+            '\u201d': '"',  # Right double quotation mark
+            '\u2013': '-',  # En dash
+            '\u2014': '--', # Em dash
+            '\u2026': '...', # Ellipsis
+            '\u00a0': ' ',  # Non-breaking space
+            '\u2192': '->',  # Right arrow
+            '\u2190': '<-',  # Left arrow
+        }
+        
+        for unicode_char, ascii_char in replacements.items():
+            text = text.replace(unicode_char, ascii_char)
+        
+        # For remaining non-ASCII characters, try to get ASCII equivalent
+        # This handles accented characters like é -> e
+        text = unicodedata.normalize('NFKD', text)
+        text = ''.join([c for c in text if ord(c) < 128 or c in '\n\r\t'])
+        
+        return text
 
     def extract_emails(self, text):
         """Extract email addresses from text"""
