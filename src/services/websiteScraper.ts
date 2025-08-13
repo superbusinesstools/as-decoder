@@ -6,9 +6,9 @@ export class WebsiteScraper {
         // maxDepth is now handled in scrapeWebsite method
     }
 
-    async scrapeWebsite(startUrl: string, maxDepth: number = 2): Promise<{
+    async scrapeWebsite(startUrl: string, maxDepth: number = 2, maxPages: number = 10): Promise<{
         success: boolean;
-        content: string;
+        content: string[];
         emails: string[];
         links: string[];
         pagesVisited: number;
@@ -22,7 +22,8 @@ export class WebsiteScraper {
             const pythonProcess = spawn(venvPython, [
                 scraperPath,
                 startUrl,
-                '--depth', maxDepth.toString()
+                '--depth', maxDepth.toString(),
+                '--max-pages', maxPages.toString()
             ], {
                 cwd: path.join(__dirname, '../../scripts/scraper'),
                 timeout: 120000  // 2 minute timeout for production
@@ -51,7 +52,7 @@ export class WebsiteScraper {
                         resolve({
                             success: false,
                             error: `Python scraper failed with code ${code}: ${errorOutput}`,
-                            content: '',
+                            content: [],
                             emails: [],
                             links: [],
                             pagesVisited: 0
@@ -61,7 +62,7 @@ export class WebsiteScraper {
                     resolve({
                         success: false,
                         error: `Failed to parse scraper output: ${parseError instanceof Error ? parseError.message : 'Unknown error'}`,
-                        content: output || '',
+                        content: [],
                         emails: [],
                         links: [],
                         pagesVisited: 0
@@ -74,7 +75,7 @@ export class WebsiteScraper {
                 resolve({
                     success: false,
                     error: `Failed to start Python scraper: ${error.message}`,
-                    content: '',
+                    content: [],
                     emails: [],
                     links: [],
                     pagesVisited: 0

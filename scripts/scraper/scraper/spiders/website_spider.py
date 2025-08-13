@@ -4,11 +4,12 @@ from scrapy.linkextractors import LinkExtractor
 from scrapy.spiders import CrawlSpider, Rule
 from scraper.items import ScrapedPageItem
 import re
+from bs4 import BeautifulSoup
 
 class WebsiteSpider(CrawlSpider):
     name = 'website'
     
-    def __init__(self, url=None, max_depth=2, *args, **kwargs):
+    def __init__(self, url=None, max_depth=2, max_pages=10, *args, **kwargs):
         super(WebsiteSpider, self).__init__(*args, **kwargs)
         
         if not url:
@@ -19,6 +20,8 @@ class WebsiteSpider(CrawlSpider):
             url = f'https://{url}'
         
         self.start_urls = [url]
+        self.pages_crawled = 0
+        self.max_pages = int(max_pages)
         
         # Set allowed domains to restrict crawling to the same domain
         parsed_url = urlparse(url)
@@ -29,6 +32,7 @@ class WebsiteSpider(CrawlSpider):
             'DEPTH_LIMIT': int(max_depth),
             'CONCURRENT_REQUESTS_PER_DOMAIN': 1,  # Be respectful
             'DOWNLOAD_DELAY': 1,
+            'CLOSESPIDER_PAGECOUNT': int(max_pages),  # Stop after max_pages
         }
         
         # Define rules for following links
@@ -59,10 +63,19 @@ class WebsiteSpider(CrawlSpider):
 
     def parse_start_url(self, response):
         """Parse start URLs - required for CrawlSpider"""
+        self.logger.info(f"Parsing start URL: {response.url}")
         return self.parse_page(response)
 
     def parse_page(self, response):
         """Parse individual pages and extract content"""
+        
+        self.logger.info(f"parse_page called for: {response.url}")
+        
+        # Check if we've reached the page limit
+        self.pages_crawled += 1
+        if self.pages_crawled > self.max_pages:
+            self.logger.info(f"Reached max pages limit ({self.max_pages}), stopping")
+            return
         
         # Get page path for identification
         parsed_url = urlparse(response.url)
@@ -89,91 +102,81 @@ class WebsiteSpider(CrawlSpider):
         )
 
     def extract_content(self, response):
-        """Extract main content from the page while preserving structure"""
+        """Extract main content from the page using BeautifulSoup for better HTML filtering"""
         
-        # Try to get main content areas first
+        # Parse the HTML with BeautifulSoup (use html.parser for better compatibility)
+        soup = BeautifulSoup(response.text, 'html.parser')
+        
+        # Remove script, style, and other non-content elements
+        for element in soup(['script', 'style', 'noscript', 'meta', 'link', 'head']):
+            element.decompose()
+        
+        # Remove navigation, headers, footers, and ads
+        for selector in ['nav', 'header', 'footer', '.navigation', '.menu', 
+                        '.sidebar', '.widget', '.advertisement', '.ad', 
+                        '[class*="cookie"]', '[id*="cookie"]']:
+            for element in soup.select(selector):
+                element.decompose()
+        
+        # Try to find main content area
+        main_content = None
         main_selectors = [
             'main', 'article', '[role="main"]',
             '.content', '.main-content', '#content', '#main',
             '.post-content', '.entry-content', '.article-content'
         ]
         
-        content_parts = []
-        
-        # Try main content selectors first
         for selector in main_selectors:
-            main_content = response.css(selector)
-            if main_content:
-                text = self.extract_text_with_structure(main_content)
-                if text and len(text.strip()) > 50:  # Ensure we got substantial content
-                    content_parts.append(text)
-                    break
+            main_element = soup.select_one(selector)
+            if main_element:
+                main_content = main_element
+                break
         
-        # If no main content found, get body content but remove navigation
-        if not content_parts:
-            # Remove unwanted elements
-            unwanted_selectors = [
-                'nav', 'header', 'footer', '.navigation', '.menu', 
-                '.sidebar', '.widget', '.advertisement', '.ad',
-                'script', 'style', 'noscript'
-            ]
-            
-            # Clone the body to avoid modifying original
-            body_text = response.css('body').get()
-            if body_text:
-                # Use regex to remove unwanted sections (simple approach)
-                for selector in unwanted_selectors:
-                    # This is a simple approach - in a more robust implementation
-                    # we'd parse the HTML properly
-                    pass
-                
-                # Extract text from body
-                body_content = response.css('body')
-                text = self.extract_text_with_structure(body_content)
-                if text:
-                    content_parts.append(text)
+        # If no main content found, use body
+        if not main_content:
+            main_content = soup.body if soup.body else soup
         
-        # Join all content parts
-        full_content = '\n\n'.join(content_parts)
+        # Extract text with proper spacing
+        text = self.extract_text_from_soup(main_content)
         
         # Clean up the content
-        return self.clean_content(full_content)
+        return self.clean_content(text)
 
-    def extract_text_with_structure(self, selector):
-        """Extract text while preserving important structure like contact info"""
+    def extract_text_from_soup(self, element):
+        """Extract text from BeautifulSoup element with proper structure preservation"""
         
-        if not selector:
+        if not element:
             return ''
         
-        # Get all text nodes, preserving some structure
+        # Get text with newlines for block elements
         text_parts = []
         
-        # Extract text with some structure preservation
-        for element in selector:
-            # Get all text, but preserve line breaks for contact info
-            element_text = element.css('::text').getall()
-            cleaned_text = ' '.join([t.strip() for t in element_text if t.strip()])
-            
-            # Look for contact information patterns and preserve their structure
-            contact_patterns = [
-                r'(email\s*(?:address)?:?\s*[^\s]+@[^\s]+)',
-                r'(phone\s*(?:number)?:?\s*[\d\-\(\)\s\+]+)',
-                r'(address:?\s*[^\.]+)',
-                r'(contact:?\s*[^\.]+)'
-            ]
-            
-            # If this contains contact info, preserve line breaks
-            has_contact_info = any(re.search(pattern, cleaned_text, re.IGNORECASE) 
-                                 for pattern in contact_patterns)
-            
-            if has_contact_info:
-                # For contact info, preserve more structure
-                structured_text = '\n'.join([t.strip() for t in element_text if t.strip()])
-                text_parts.append(structured_text)
-            else:
-                text_parts.append(cleaned_text)
+        # Process each element to preserve structure
+        for elem in element.descendants:
+            if elem.name in ['p', 'div', 'section', 'article', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'li', 'td', 'th']:
+                # Add newline after block elements
+                if elem.string:
+                    text_parts.append(elem.string.strip())
+                    text_parts.append('\n')
+            elif elem.name == 'br':
+                # Preserve line breaks
+                text_parts.append('\n')
+            elif elem.string and elem.parent.name not in ['script', 'style']:
+                # Add inline text
+                text = elem.string.strip()
+                if text:
+                    text_parts.append(text + ' ')
         
-        return '\n'.join(text_parts)
+        # Join and clean up
+        text = ''.join(text_parts)
+        
+        # Clean up excessive whitespace while preserving structure
+        text = re.sub(r'\n{3,}', '\n\n', text)  # Limit to 2 newlines max
+        text = re.sub(r' {2,}', ' ', text)  # Remove multiple spaces
+        text = re.sub(r'\n ', '\n', text)  # Remove spaces at start of lines
+        text = re.sub(r' \n', '\n', text)  # Remove spaces at end of lines
+        
+        return text.strip()
 
     def clean_content(self, content):
         """Clean content while preserving important formatting"""

@@ -26,12 +26,12 @@ class ScrapedDataPipeline:
         return item
 
     def close_spider(self, spider):
-        # Format output similar to original scraper
-        formatted_content = self.format_scraped_content()
+        # Format content as an array of page contents
+        content_array = self.format_content_array()
         
         result = {
             'success': True,
-            'content': formatted_content,
+            'content': content_array,
             'emails': list(self.all_emails),
             'links': [],  # We don't track links separately in this implementation
             'pagesVisited': len(self.items)
@@ -77,10 +77,10 @@ class ScrapedDataPipeline:
         emails.extend(context_emails)
         return list(set(emails))  # Remove duplicates
 
-    def format_scraped_content(self):
-        """Format scraped content similar to original scraper"""
+    def format_content_array(self):
+        """Format scraped content as an array"""
         if not self.items:
-            return ''
+            return []
         
         # Sort by depth (home page first) and then by path
         sorted_items = sorted(self.items, key=lambda x: (x.get('depth', 0), x.get('path', '')))
@@ -90,6 +90,7 @@ class ScrapedDataPipeline:
             path = item.get('path', '/')
             content = item.get('content', '')
             if content.strip():
+                # Format each page as a string with path header
                 formatted_pages.append(f"Page {path}\n\n{content}")
         
-        return '\n\n---\n\n'.join(formatted_pages)
+        return formatted_pages

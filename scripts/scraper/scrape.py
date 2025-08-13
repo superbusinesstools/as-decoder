@@ -11,6 +11,7 @@ def main():
     parser = argparse.ArgumentParser(description='Scrape a website using Scrapy')
     parser.add_argument('url', help='URL to scrape')
     parser.add_argument('--depth', type=int, default=2, help='Maximum crawl depth (default: 2)')
+    parser.add_argument('--max-pages', type=int, default=10, help='Maximum pages to crawl (default: 10)')
     parser.add_argument('--output', help='Output file for results (default: stdout)')
     parser.add_argument('--verbose', '-v', action='store_true', help='Verbose output')
     
@@ -27,11 +28,13 @@ def main():
         'scrapy', 'crawl', 'website',
         '-a', f'url={args.url}',
         '-a', f'max_depth={args.depth}',
+        '-a', f'max_pages={args.max_pages}',
         '-s', 'LOG_LEVEL=ERROR'  # Suppress scrapy logs by default
     ]
     
     if args.verbose:
-        cmd[-1] = '-s LOG_LEVEL=INFO'
+        cmd[-2] = '-s'
+        cmd[-1] = 'LOG_LEVEL=INFO'
     
     try:
         # Run scrapy command and capture output
@@ -46,7 +49,7 @@ def main():
             error_msg = {
                 'success': False,
                 'error': f'Scrapy command failed: {result.stderr}',
-                'content': '',
+                'content': [],
                 'emails': [],
                 'links': [],
                 'pagesVisited': 0
@@ -64,7 +67,7 @@ def main():
                 error_msg = {
                     'success': False,
                     'error': 'Invalid JSON output from scraper',
-                    'content': output or 'No content extracted',
+                    'content': [],
                     'emails': [],
                     'links': [],
                     'pagesVisited': 0
@@ -83,7 +86,7 @@ def main():
         error_msg = {
             'success': False,
             'error': 'Scraping timeout after 5 minutes',
-            'content': '',
+            'content': [],
             'emails': [],
             'links': [],
             'pagesVisited': 0
@@ -102,7 +105,7 @@ def main():
         error_msg = {
             'success': False,
             'error': f'Unexpected error: {str(e)}',
-            'content': '',
+            'content': [],
             'emails': [],
             'links': [],
             'pagesVisited': 0
