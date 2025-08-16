@@ -59,7 +59,42 @@ pnpm dev
 ### Production
 ```bash
 pnpm build
-pnpm start
+pnpm start           # Start with pm2 (includes auto-watch)
+```
+
+### Development with Auto-Restart
+```bash
+# Option 1: PM2 with watch mode (recommended for production-like environment)
+pnpm build
+pnpm start            # Automatically watches dist/ folder for changes
+
+# Option 2: Direct development mode
+pnpm dev              # Uses ts-node for immediate TypeScript execution
+
+# When using PM2 watch mode, rebuild to trigger restart:
+pnpm build            # PM2 will automatically restart when dist/ changes
+```
+
+### Deployment
+```bash
+# Auto-deploy: pull changes, build, and restart pm2
+pnpm deploy
+
+# Manual deployment steps:
+git pull origin master
+pnpm install
+pnpm build
+pnpm run pm2:restart
+```
+
+### PM2 Management
+```bash
+pnpm run pm2:start      # Start with ecosystem config (auto-watch enabled)
+pnpm run pm2:start-watch # Start with explicit watch mode
+pnpm run pm2:restart    # Restart the process
+pnpm run pm2:reload     # Graceful reload (zero-downtime)
+pnpm run pm2:stop       # Stop the process
+pnpm run pm2:logs       # View logs
 ```
 
 ### Testing
