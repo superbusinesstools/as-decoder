@@ -1,7 +1,9 @@
 import queueService from './queueService';
 import db from '../db';
-import { Company } from '../types';
+import { Company, ProcessedData } from '../types';
 import { WebsiteScraper } from './websiteScraper';
+import crmService from './crmService';
+import claudeAI from './ai/claudeAI';
 
 class ProcessorService {
   private isProcessing = false;
@@ -52,7 +54,7 @@ class ProcessorService {
     try {
       const stmt = db.prepare(`
         SELECT * FROM companies 
-        WHERE status = 'pending' 
+        WHERE status IN ('pending', 'processing') AND current_step != 'completed'
         ORDER BY created_at ASC
       `);
       return stmt.all() as Company[];
@@ -66,55 +68,31 @@ class ProcessorService {
     this.isProcessing = true;
     
     try {
-      console.log(`🔄 Processing company: ${company.company_id}`);
+      console.log(`🔄 Processing company: ${company.company_id} (current step: ${company.current_step})`);
       
-      // Update status to processing
-      queueService.updateCompanyStatus(company.company_id, 'processing');
+      // Update status to processing if it's not already
+      if (company.status === 'pending') {
+        queueService.updateCompanyStatus(company.company_id, 'processing');
+      }
       
-      // Log crawling start
-      queueService.addProcessLog({
-        company_id: company.company_id,
-        step: 'crawling',
-        status: 'started',
-        message: 'Starting website crawl'
-      });
-
-      // Simulate website crawling
-      const rawData = await this.simulateWebsiteCrawl(company.website_url);
+      // Step 1: Crawling (skip if raw_data exists)
+      if (!company.raw_data && (company.current_step === 'pending' || company.current_step === 'crawling')) {
+        await this.performCrawling(company);
+        this.updateCurrentStep(company.company_id, 'ai_processing');
+      }
       
-      // Save raw data and log crawling completion
-      this.updateCompanyRawData(company.company_id, rawData);
-      queueService.addProcessLog({
-        company_id: company.company_id,
-        step: 'crawling',
-        status: 'completed',
-        message: 'Website crawl completed',
-        data: `${rawData.length} characters extracted`
-      });
-
-      // Log AI processing start
-      queueService.addProcessLog({
-        company_id: company.company_id,
-        step: 'ai_processing',
-        status: 'started',
-        message: 'Starting AI processing'
-      });
-
-      // Simulate AI processing
-      const processedData = await this.processWithAI(rawData, company);
+      // Step 2: AI Processing (skip if processed_data exists)
+      if (!company.processed_data && (company.current_step === 'ai_processing')) {
+        await this.performAIProcessing(company);
+        this.updateCurrentStep(company.company_id, 'crm_sending');
+      }
       
-      // Save processed data and log AI completion
-      this.updateCompanyProcessedData(company.company_id, processedData);
-      queueService.addProcessLog({
-        company_id: company.company_id,
-        step: 'ai_processing',
-        status: 'completed',
-        message: 'AI processing completed',
-        data: 'Structured data extracted'
-      });
-
-      // Mark company as completed
-      queueService.updateCompanyStatus(company.company_id, 'completed');
+      // Step 3: CRM Sending (check if already completed)
+      if (company.current_step === 'crm_sending') {
+        await this.performCRMSending(company);
+        this.updateCurrentStep(company.company_id, 'completed');
+        queueService.updateCompanyStatus(company.company_id, 'completed');
+      }
       
       console.log(`✅ Company ${company.company_id} processed successfully`);
       
@@ -122,9 +100,15 @@ class ProcessorService {
       console.error(`❌ Error processing company ${company.company_id}:`, error);
       
       queueService.updateCompanyStatus(company.company_id, 'failed');
+      
+      // Map current_step to valid ProcessLog step
+      const logStep = company.current_step === 'pending' ? 'crawling' : 
+                     company.current_step === 'completed' ? 'crm_sending' : 
+                     company.current_step;
+      
       queueService.addProcessLog({
         company_id: company.company_id,
-        step: 'crawling',
+        step: logStep,
         status: 'failed',
         message: `Processing failed: ${error instanceof Error ? error.message : 'Unknown error'}`
       });
@@ -133,14 +117,117 @@ class ProcessorService {
     }
   }
 
+  private updateCurrentStep(companyId: string, step: 'pending' | 'crawling' | 'ai_processing' | 'crm_sending' | 'completed'): void {
+    try {
+      const stmt = db.prepare(`
+        UPDATE companies 
+        SET current_step = ? 
+        WHERE company_id = ?
+      `);
+      stmt.run(step, companyId);
+    } catch (error) {
+      console.error('❌ Error updating current step:', error);
+      throw error;
+    }
+  }
+
+  private async performCrawling(company: Company): Promise<void> {
+    console.log(`🕷️ Starting crawling for ${company.company_id}`);
+    
+    queueService.addProcessLog({
+      company_id: company.company_id,
+      step: 'crawling',
+      status: 'started',
+      message: 'Starting website crawl'
+    });
+
+    const rawData = await this.simulateWebsiteCrawl(company.website_url);
+    
+    this.updateCompanyRawData(company.company_id, rawData);
+    queueService.addProcessLog({
+      company_id: company.company_id,
+      step: 'crawling',
+      status: 'completed',
+      message: 'Website crawl completed',
+      data: `${rawData.length} characters extracted`
+    });
+  }
+
+  private async performAIProcessing(company: Company): Promise<void> {
+    console.log(`🤖 Starting AI processing for ${company.company_id}`);
+    
+    queueService.addProcessLog({
+      company_id: company.company_id,
+      step: 'ai_processing',
+      status: 'started',
+      message: 'Starting AI processing'
+    });
+
+    // Get the raw data
+    const rawData = company.raw_data || '';
+    
+    // Process with Claude AI
+    const aiAnalysis = await claudeAI.processContent(rawData, company);
+    
+    // Create processed data structure
+    const processedData: ProcessedData = {
+      ai_result: aiAnalysis,
+      crm_progress: {
+        contact_created: false,
+        company_updated: false,
+        notes_added: false,
+        custom_fields_updated: false
+      }
+    };
+    
+    this.updateCompanyProcessedData(company.company_id, JSON.stringify(processedData, null, 2));
+    queueService.addProcessLog({
+      company_id: company.company_id,
+      step: 'ai_processing',
+      status: 'completed',
+      message: 'AI processing completed',
+      data: 'Structured data extracted'
+    });
+  }
+
+  private async performCRMSending(company: Company): Promise<void> {
+    console.log(`📤 Starting CRM sending for ${company.company_id}`);
+    
+    queueService.addProcessLog({
+      company_id: company.company_id,
+      step: 'crm_sending',
+      status: 'started',
+      message: 'Starting CRM sending'
+    });
+
+    // Get processed data
+    if (!company.processed_data) {
+      throw new Error('No processed data available for CRM sending');
+    }
+
+    const processedData: ProcessedData = JSON.parse(company.processed_data);
+    
+    // Use CRM service to send data with sub-step tracking
+    await crmService.sendToCRM(company.company_id, processedData);
+    
+    queueService.addProcessLog({
+      company_id: company.company_id,
+      step: 'crm_sending',
+      status: 'completed',
+      message: 'Data sent to CRM successfully'
+    });
+  }
+
   private async simulateWebsiteCrawl(websiteUrl: string): Promise<string> {
-    const scraper = new WebsiteScraper({ maxDepth: 2 });
+    const maxDepth = parseInt(process.env.CRAWL_MAX_DEPTH || '2');
+    const maxPages = parseInt(process.env.CRAWL_MAX_PAGES || '10');
+    const scraper = new WebsiteScraper({ maxDepth });
     
     try {
-      const result = await scraper.scrapeWebsite(websiteUrl, 2);
+      const result = await scraper.scrapeWebsite(websiteUrl, maxDepth, maxPages);
       
-      if (result.success && result.content.trim()) {
-        return result.content;
+      if (result.success && result.content.length > 0) {
+        return result.content.join('\n\n');
       } else {
         throw new Error(result.error || 'Failed to scrape website content');
       }
@@ -150,48 +237,6 @@ class ProcessorService {
     }
   }
 
-  private async processWithAI(rawData: string, company: Company): Promise<string> {
-    // Simulate AI processing delay
-    await new Promise(resolve => setTimeout(resolve, 1500));
-    
-    // Mock AI-processed structured data
-    const structuredData = {
-      company_info: {
-        name: company.company_id.split('-').map(word => 
-          word.charAt(0).toUpperCase() + word.slice(1)
-        ).join(' '),
-        website: company.website_url,
-        source: company.source_url,
-        founded: "2010",
-        employees: "50-200",
-        industry: "Technology"
-      },
-      extracted_content: {
-        description: "Leading technology company specializing in innovative solutions for modern businesses",
-        services: [
-          "Custom software development",
-          "Cloud migration",
-          "Data analytics", 
-          "Artificial intelligence solutions",
-          "Digital transformation consulting"
-        ],
-        target_market: "Companies of all sizes, from startups to Fortune 500 enterprises",
-        key_differentiators: [
-          "Agile approach",
-          "Rapid delivery",
-          "High quality standards",
-          "Diverse expert team"
-        ]
-      },
-      metrics: {
-        pages_analyzed: 3,
-        total_content_length: rawData.length,
-        processing_timestamp: new Date().toISOString()
-      }
-    };
-
-    return JSON.stringify(structuredData, null, 2);
-  }
 
   private updateCompanyRawData(companyId: string, rawData: string): void {
     try {

@@ -10,6 +10,7 @@ export interface Company {
   website_url: string;
   source_url: string;
   status: 'pending' | 'processing' | 'completed' | 'failed';
+  current_step: 'pending' | 'crawling' | 'ai_processing' | 'crm_sending' | 'completed';
   raw_data?: string;
   processed_data?: string;
   created_at: string;
@@ -24,4 +25,16 @@ export interface ProcessLog {
   message?: string;
   data?: string;
   created_at: string;
+}
+
+export interface CRMProgress {
+  contact_created?: boolean;
+  company_updated?: boolean;
+  notes_added?: boolean;
+  custom_fields_updated?: boolean;
+}
+
+export interface ProcessedData {
+  ai_result: any;
+  crm_progress?: CRMProgress;
 }

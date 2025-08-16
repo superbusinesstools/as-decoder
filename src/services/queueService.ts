@@ -4,8 +4,8 @@ import { Company, CompanyQueueRequest, ProcessLog } from '../types';
 export class QueueService {
   createCompany(data: CompanyQueueRequest): Company {
     const insertCompany = db.prepare(`
-      INSERT INTO companies (company_id, website_url, source_url)
-      VALUES (@company_id, @website_url, @source_url)
+      INSERT INTO companies (company_id, website_url, source_url, current_step)
+      VALUES (@company_id, @website_url, @source_url, 'pending')
     `);
 
     const insertLog = db.prepare(`

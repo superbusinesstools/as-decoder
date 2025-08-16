@@ -1,24 +1,53 @@
 # AS-Decoder Web Crawler Queue System
 
-A queue management system for web crawling operations with SQLite database and comprehensive logging.
+A resumable queue management system for web crawling operations with Claude AI integration and CRM automation.
 
 ## Features
 
-- Queue endpoint to receive company details for crawling
-- SQLite database for persistent storage
-- Process logging for tracking 4-step workflow:
-  1. Receive company details
-  2. Crawl website
-  3. Process with AI
-  4. Send to CRM
-- Input validation with Joi
-- Comprehensive test coverage
+- **Resumable Processing**: Steps can be resumed from where they failed
+- **Claude AI Integration**: Intelligent content analysis with editable prompts
+- **CRM Automation**: Structured data extraction for CRM integration
+- **SQLite Database**: Persistent storage with step tracking
+- **Process Logging**: Comprehensive tracking of 4-step workflow:
+  1. Receive company details (webhook/queue endpoint)
+  2. Crawl website (skip if already done)
+  3. Process with Claude AI (skip if already done)
+  4. Send to CRM (with sub-step tracking)
+- **Input Validation**: Request validation with Joi
+- **Comprehensive Testing**: Full test coverage
 
 ## Installation
 
 ```bash
 pnpm install
 ```
+
+## Configuration
+
+### Environment Variables
+Create or update `.env` file:
+
+```bash
+# Server Configuration
+PORT=20080
+
+# Database Configuration
+DB_PATH=crawler.db
+
+# Environment
+NODE_ENV=development
+
+# AI Configuration
+ANTHROPIC_API_KEY=your_anthropic_api_key_here
+CLAUDE_MODEL=claude-3-haiku-20240307
+
+# Crawling Configuration
+CRAWL_MAX_DEPTH=3      # How many "clicks" deep to follow links (1=homepage only, 2=homepage+linked pages, 3=deeper)
+CRAWL_MAX_PAGES=20     # Maximum total pages to scrape (prevents crawling huge sites)
+```
+
+### AI Prompt Customization
+Edit the AI analysis prompt in `src/services/ai/prompt.txt` to customize how Claude analyzes company websites. Changes take effect immediately without restarting the application.
 
 ## Running the Application
 
@@ -36,6 +65,25 @@ pnpm start
 ### Testing
 ```bash
 pnpm test
+```
+
+### Utility Scripts
+```bash
+pnpm run reset          # Reset database
+pnpm run seed           # Seed test data
+pnpm run scrape         # Test scraping functionality
+```
+
+#### Testing Scraping with Different Settings
+```bash
+# Use environment defaults (depth=3, pages=20)
+pnpm scrape https://example.com
+
+# Override depth and pages
+pnpm scrape https://example.com --depth 2 --max-pages 10
+
+# Verbose output for debugging
+pnpm scrape https://example.com --verbose
 ```
 
 ## API Endpoints
@@ -79,7 +127,10 @@ Get company status and process logs.
       "company_id": "unique-company-id",
       "website_url": "https://example.com",
       "source_url": "https://source.example.com",
-      "status": "pending",
+      "status": "processing",
+      "current_step": "ai_processing",
+      "raw_data": "...",
+      "processed_data": "...",
       "created_at": "2024-01-01T12:00:00.000Z",
       "updated_at": "2024-01-01T12:00:00.000Z"
     },
@@ -87,9 +138,9 @@ Get company status and process logs.
       {
         "id": 1,
         "company_id": "unique-company-id",
-        "step": "received",
+        "step": "crawling",
         "status": "completed",
-        "message": "Company queued successfully",
+        "message": "Website crawl completed",
         "created_at": "2024-01-01T12:00:00.000Z"
       }
     ]
@@ -100,6 +151,56 @@ Get company status and process logs.
 ### GET /health
 Health check endpoint.
 
+## Processing Workflow
+
+The system processes companies through 4 resumable steps:
+
+1. **Receive Company Data**: Company details are queued via API endpoint
+2. **Website Crawling**: Extract content using Puppeteer and Scrapy (skipped if raw_data exists)
+3. **AI Processing**: Analyze content with Claude AI (skipped if processed_data exists)
+4. **CRM Integration**: Send structured data to CRM with sub-step tracking
+
+### Resumable Processing
+- If any step fails, the system can resume from that exact step
+- No repeated work - expensive operations like crawling and AI analysis won't be re-run
+- Sub-step tracking for CRM integration allows partial completion recovery
+
+## AI Integration
+
+### Claude AI Analysis
+The system uses Claude AI to extract structured information from website content:
+
+```json
+{
+  "company_data": {
+    "name": "Company Name",
+    "industry": "Technology",
+    "size": "medium",
+    "description": "Brief company description"
+  },
+  "notes": [
+    {"title": "Business Overview", "content": "..."},
+    {"title": "Key Services & Products", "content": "..."}
+  ],
+  "contacts": {
+    "emails": ["contact@company.com"],
+    "phones": ["+1-555-0123"]
+  },
+  "extracted_data": {
+    "services": ["Service 1", "Service 2"],
+    "technologies": ["Tech 1", "Tech 2"],
+    "keywords": ["keyword1", "keyword2"]
+  }
+}
+```
+
+### Prompt Customization
+Edit `src/services/ai/prompt.txt` to customize AI analysis. The prompt supports template variables:
+- `{{company_id}}` - Company identifier
+- `{{website_url}}` - Company website URL
+- `{{source_url}}` - Source URL
+- `{{content}}` - Scraped website content
+
 ## Database Schema
 
 ### Companies Table
@@ -108,6 +209,9 @@ Health check endpoint.
 - `website_url` - Company website URL
 - `source_url` - Source URL for crawling
 - `status` - Current status (pending/processing/completed/failed)
+- `current_step` - Current processing step (pending/crawling/ai_processing/crm_sending/completed)
+- `raw_data` - Scraped website content
+- `processed_data` - Claude AI analysis results (JSON)
 - `created_at` - Record creation timestamp
 - `updated_at` - Last update timestamp
 
@@ -119,3 +223,40 @@ Health check endpoint.
 - `message` - Optional message
 - `data` - Optional JSON data
 - `created_at` - Log creation timestamp
+
+## CRM Integration
+
+The system is designed to integrate with Twenty CRM through a multi-step process:
+
+1. **Contact Creation/Update**: Create or update contact records
+2. **Company Information**: Update company fields with extracted data
+3. **Notes Addition**: Add structured analysis as notes
+4. **Custom Fields**: Update custom fields with extracted information
+
+Each sub-step is tracked and can be resumed independently if failures occur.
+
+## Development
+
+### File Structure
+```
+src/
+├── controllers/          # API controllers
+├── db/                  # Database setup and migrations
+├── routes/              # Express routes
+├── services/            # Business logic
+│   ├── ai/             # Claude AI integration
+│   │   ├── claudeAI.ts # AI service
+│   │   └── prompt.txt  # Editable prompt
+│   ├── crmService.ts   # CRM integration (placeholder)
+│   ├── processor.ts    # Main processing orchestrator
+│   ├── queueService.ts # Queue management
+│   └── websiteScraper.ts # Web scraping
+├── types/              # TypeScript types
+└── utils/              # Utilities and validation
+```
+
+### Adding New AI Providers
+To add additional AI providers, extend the AI service in `src/services/ai/` while maintaining the same interface.
+
+### Webhook Integration
+The system is designed to receive webhook requests from CRM systems. Companies are automatically processed in the background every 5 seconds.

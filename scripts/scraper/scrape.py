@@ -10,8 +10,8 @@ from pathlib import Path
 def main():
     parser = argparse.ArgumentParser(description='Scrape a website using Scrapy')
     parser.add_argument('url', help='URL to scrape')
-    parser.add_argument('--depth', type=int, default=2, help='Maximum crawl depth (default: 2)')
-    parser.add_argument('--max-pages', type=int, default=10, help='Maximum pages to crawl (default: 10)')
+    parser.add_argument('--depth', type=int, default=int(os.getenv('CRAWL_MAX_DEPTH', '2')), help='Maximum crawl depth (default: from CRAWL_MAX_DEPTH env or 2)')
+    parser.add_argument('--max-pages', type=int, default=int(os.getenv('CRAWL_MAX_PAGES', '10')), help='Maximum pages to crawl (default: from CRAWL_MAX_PAGES env or 10)')
     parser.add_argument('--output', help='Output file for results (default: stdout)')
     parser.add_argument('--verbose', '-v', action='store_true', help='Verbose output')
     

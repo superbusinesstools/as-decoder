@@ -18,6 +18,7 @@ export function initializeDatabase() {
       website_url TEXT NOT NULL,
       source_url TEXT NOT NULL,
       status TEXT DEFAULT 'pending' CHECK(status IN ('pending', 'processing', 'completed', 'failed')),
+      current_step TEXT DEFAULT 'pending' CHECK(current_step IN ('pending', 'crawling', 'ai_processing', 'crm_sending', 'completed')),
       raw_data TEXT,
       processed_data TEXT,
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
@@ -45,6 +46,13 @@ export function initializeDatabase() {
       UPDATE companies SET updated_at = CURRENT_TIMESTAMP WHERE id = NEW.id;
     END;
   `);
+
+  // Add current_step column if it doesn't exist (migration for existing databases)
+  try {
+    db.exec(`ALTER TABLE companies ADD COLUMN current_step TEXT DEFAULT 'pending' CHECK(current_step IN ('pending', 'crawling', 'ai_processing', 'crm_sending', 'completed'));`);
+  } catch (error) {
+    // Column already exists, ignore error
+  }
 }
 
 export default db;

@@ -1,0 +1,55 @@
+Analyze the following company website content and extract structured information for CRM integration.
+
+Company: {{company_id}}
+Website: {{website_url}}
+Source: {{source_url}}
+
+Website Content:
+{{content}}
+
+Please analyze this content and return ONLY a valid JSON object with the following structure:
+
+{
+  "company_data": {
+    "name": "extracted or inferred company name",
+    "industry": "identified industry sector",
+    "size": "estimated company size (startup/small/medium/large/enterprise)",
+    "description": "concise 2-3 sentence company description",
+    "founded": "founding year if mentioned",
+    "location": "headquarters or main location if found"
+  },
+  "notes": [
+    {
+      "title": "Business Overview",
+      "content": "detailed summary of what the company does and their value proposition"
+    },
+    {
+      "title": "Key Services & Products",
+      "content": "comprehensive list and description of main offerings"
+    },
+    {
+      "title": "Target Market & Customers", 
+      "content": "analysis of their target audience and customer segments"
+    },
+    {
+      "title": "Competitive Advantages",
+      "content": "unique selling points and differentiators mentioned"
+    }
+  ],
+  "contacts": {
+    "emails": ["extracted email addresses"],
+    "phones": ["extracted phone numbers"],
+    "addresses": ["physical addresses found"],
+    "social_media": ["social media profiles/links"]
+  },
+  "extracted_data": {
+    "services": ["specific services offered"],
+    "technologies": ["technologies, tools, or platforms mentioned"],
+    "clients": ["notable clients or case studies mentioned"],
+    "partnerships": ["partnerships or integrations mentioned"],
+    "team_size": "team size if mentioned",
+    "keywords": ["important keywords and terms from content"]
+  }
+}
+
+Important: Return ONLY the JSON object, no additional text or formatting.
