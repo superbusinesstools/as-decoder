@@ -1,7 +1,7 @@
 export interface CompanyQueueRequest {
   company_id: string;
   website_url: string;
-  source_url: string;
+  source_url?: string;
 }
 
 export interface Company {

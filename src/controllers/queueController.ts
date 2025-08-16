@@ -1,6 +1,7 @@
 import { Request, Response } from 'express';
 import queueService from '../services/queueService';
 import { validateCompanyQueue } from '../utils/validation';
+import crmApi from '../services/crmApi';
 
 export class QueueController {
   async addToQueue(req: Request, res: Response): Promise<void> {
@@ -16,7 +17,27 @@ export class QueueController {
         return;
       }
 
-      const company = queueService.createCompany(value!);
+      let companyData = value!;
+
+      if (!companyData.source_url) {
+        try {
+          console.log(`Fetching company data from CRM for ID: ${companyData.company_id}`);
+          const crmCompany = await crmApi.getCompanyById(companyData.company_id);
+          
+          if (crmCompany && crmCompany.sourceUrl) {
+            companyData.source_url = crmCompany.sourceUrl;
+            console.log(`Retrieved source_url from CRM: ${crmCompany.sourceUrl}`);
+          } else {
+            console.warn(`No source_url found in CRM for company ${companyData.company_id}`);
+            companyData.source_url = companyData.website_url;
+          }
+        } catch (crmError) {
+          console.error(`Failed to fetch company from CRM: ${crmError}`);
+          companyData.source_url = companyData.website_url;
+        }
+      }
+
+      const company = queueService.createCompany(companyData);
 
       res.status(201).json({
         success: true,

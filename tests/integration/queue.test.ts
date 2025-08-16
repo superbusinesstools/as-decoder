@@ -92,20 +92,23 @@ describe('Queue API', () => {
       expect(response.body.details).toContain('website_url is required');
     });
 
-    it('should return 400 for missing source_url', async () => {
+    it('should successfully queue a company without source_url (fallback to website_url)', async () => {
       const response = await request(app)
         .post('/api/queue')
         .send({
           company_id: 'test-company',
           website_url: 'https://example.com'
         })
-        .expect(400);
+        .expect(201);
 
       expect(response.body).toMatchObject({
-        success: false,
-        error: 'Validation error'
+        success: true,
+        message: 'Company queued successfully',
+        data: {
+          company_id: 'test-company',
+          status: 'pending'
+        }
       });
-      expect(response.body.details).toContain('source_url is required');
     });
 
     it('should return 400 for invalid website_url', async () => {
