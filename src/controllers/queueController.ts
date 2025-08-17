@@ -154,7 +154,7 @@ export class QueueController {
     }
   }
 
-  async getFailedJobs(req: Request, res: Response): Promise<void> {
+  async getFailedJobs(_req: Request, res: Response): Promise<void> {
     try {
       const companies = queueService.getFailedCompanies();
 
