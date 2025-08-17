@@ -22,7 +22,7 @@
 		"pm2:restart": "pm2 restart as-decoder",
 		"pm2:reload": "pm2 reload as-decoder",
 		"pm2:stop": "pm2 stop as-decoder",
-		"pm2:logs": "pm2 logs as-decoder"
+		"pm2:logs": "pm2 logs as-decoder --lines 200"
 	},
 	"dependencies": {
 		"@anthropic-ai/sdk": "^0.32.1",
