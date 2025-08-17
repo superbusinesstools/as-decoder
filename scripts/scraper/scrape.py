@@ -23,9 +23,10 @@ def main():
     # Change to the scraper directory
     os.chdir(script_dir)
     
-    # Build the scrapy command
+    # Build the scrapy command using the virtual environment scrapy
+    scrapy_path = script_dir / 'venv' / 'bin' / 'scrapy'
     cmd = [
-        'scrapy', 'crawl', 'website',
+        str(scrapy_path), 'crawl', 'website',
         '-a', f'url={args.url}',
         '-a', f'max_depth={args.depth}',
         '-a', f'max_pages={args.max_pages}',

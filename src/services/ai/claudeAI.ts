@@ -6,30 +6,46 @@ import { Company } from '../../types';
 interface AIAnalysisResult {
   company_data: {
     name: string;
-    industry: string;
-    size: string;
     description: string;
-    founded?: string;
-    location?: string;
+    industry: string;
+    size_category: string;
+    employee_count?: number;
+    employee_range?: string;
+    founded_year?: number;
+    headquarters?: string;
+    other_locations?: string[];
+    phone?: string;
+    linkedin?: string;
+    twitter?: string;
+    facebook?: string;
+    instagram?: string;
   };
-  notes: Array<{
-    title: string;
-    content: string;
+  people: Array<{
+    email?: string;
+    title?: string;
+    first_name?: string;
+    middle_name?: string;
+    last_name?: string;
+    phone?: string;
+    linkedin?: string;
+    twitter?: string;
+    facebook?: string;
+    instagram?: string;
   }>;
-  contacts: {
-    emails: string[];
-    phones: string[];
-    addresses: string[];
-    social_media: string[];
+  services: {
+    company_overview?: string;
+    offerings?: string;
+    proof_points?: string;
+    target_market?: string;
+    key_people?: string;
+    recent_activity?: string;
+    tech_stack?: string;
+    competitive_intel?: string;
   };
-  extracted_data: {
-    services: string[];
-    technologies: string[];
-    clients: string[];
-    partnerships: string[];
-    team_size?: string;
-    keywords: string[];
-  };
+  quality_signals: string[];
+  growth_signals: string[];
+  industry_metrics: string[];
+  notes?: string;
 }
 
 class ClaudeAI {
@@ -134,7 +150,7 @@ Return a JSON object with company information, notes, contacts, and extracted da
       const parsed = JSON.parse(jsonMatch[0]);
       
       // Validate the structure
-      if (!parsed.company_data || !parsed.notes || !parsed.contacts || !parsed.extracted_data) {
+      if (!parsed.company_data || !parsed.people || !parsed.services) {
         throw new Error('Invalid response structure');
       }
       
@@ -151,60 +167,63 @@ Return a JSON object with company information, notes, contacts, and extracted da
         name: company.company_id.split('-').map(word => 
           word.charAt(0).toUpperCase() + word.slice(1)
         ).join(' '),
-        industry: "Technology",
-        size: "medium",
         description: "A technology company specializing in innovative solutions for modern businesses.",
-        founded: "2010",
-        location: "United States"
+        industry: "Technology",
+        size_category: "medium",
+        employee_count: 150,
+        employee_range: "100-200",
+        founded_year: 2010,
+        headquarters: "San Francisco, CA",
+        other_locations: ["New York, NY", "Austin, TX"],
+        phone: "+1-555-123-4567",
+        linkedin: "https://linkedin.com/company/example",
+        twitter: "https://twitter.com/example",
+        facebook: "https://facebook.com/example",
+        instagram: "https://instagram.com/example"
       },
-      notes: [
+      people: [
         {
-          title: "Business Overview",
-          content: "Leading technology company focused on delivering innovative solutions for modern business challenges through cutting-edge technology and expert consulting services."
+          email: "john.doe@example.com",
+          title: "CEO",
+          first_name: "John",
+          last_name: "Doe",
+          phone: "+1-555-123-4568",
+          linkedin: "https://linkedin.com/in/johndoe"
         },
         {
-          title: "Key Services & Products",
-          content: "Offers custom software development, cloud migration services, data analytics solutions, artificial intelligence implementations, and digital transformation consulting."
-        },
-        {
-          title: "Target Market & Customers",
-          content: "Serves companies of all sizes, from startups to Fortune 500 enterprises, with a focus on businesses looking to modernize their technology infrastructure."
-        },
-        {
-          title: "Competitive Advantages",
-          content: "Distinguished by agile development approach, rapid delivery capabilities, high quality standards, and a diverse team of expert professionals."
+          email: "jane.smith@example.com",
+          title: "CTO",
+          first_name: "Jane",
+          last_name: "Smith",
+          linkedin: "https://linkedin.com/in/janesmith"
         }
       ],
-      contacts: {
-        emails: [],
-        phones: [],
-        addresses: [],
-        social_media: []
+      services: {
+        company_overview: "Leading technology company focused on delivering innovative solutions for modern business challenges through cutting-edge technology and expert consulting services.",
+        offerings: "Custom software development, cloud migration services, data analytics solutions, artificial intelligence implementations, and digital transformation consulting.",
+        target_market: "Serves companies of all sizes, from startups to Fortune 500 enterprises, with a focus on businesses looking to modernize their technology infrastructure.",
+        tech_stack: "Cloud platforms, AI/ML frameworks, Modern web technologies, Database systems",
+        competitive_intel: "Distinguished by agile development approach, rapid delivery capabilities, high quality standards, and a diverse team of expert professionals.",
+        recent_activity: "Launched new AI consulting division, expanded to Austin office, hired 25 new engineers"
       },
-      extracted_data: {
-        services: [
-          "Custom software development",
-          "Cloud migration",
-          "Data analytics",
-          "Artificial intelligence solutions",
-          "Digital transformation consulting"
-        ],
-        technologies: [
-          "Cloud platforms",
-          "AI/ML frameworks",
-          "Modern web technologies",
-          "Database systems"
-        ],
-        clients: [],
-        partnerships: [],
-        keywords: [
-          "technology",
-          "innovation",
-          "software development",
-          "digital transformation",
-          "cloud solutions"
-        ]
-      }
+      quality_signals: [
+        "Fortune 500 clients including major banks",
+        "ISO 27001 certified",
+        "Winner of Tech Innovation Award 2024",
+        "4.8/5 star client satisfaction rating"
+      ],
+      growth_signals: [
+        "200% revenue growth in 2024",
+        "Expanded from 50 to 150 employees",
+        "Opened 2 new offices this year",
+        "Series B funding - $25M raised"
+      ],
+      industry_metrics: [
+        "Technology: 150 employees, $15M ARR",
+        "SaaS: 500+ enterprise clients, 2% churn rate",
+        "Consulting: 95% project success rate"
+      ],
+      notes: "Additional company information: Strong presence in fintech and healthcare verticals. Known for rapid implementation and excellent customer support."
     };
   }
 

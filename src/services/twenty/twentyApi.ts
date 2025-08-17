@@ -30,7 +30,9 @@ class TwentyApiService {
       });
 
       if (!response.ok) {
-        throw new Error(`Twenty API error: ${response.status} ${response.statusText}`);
+        const errorText = await response.text();
+        console.error(`❌ Twenty API error ${response.status}:`, errorText);
+        throw new Error(`Twenty API error: ${response.status} ${response.statusText}. Response: ${errorText}`);
       }
 
       const data = await response.json() as TwentyApiResponse;
@@ -45,6 +47,10 @@ class TwentyApiService {
 
   async updateCompany(companyId: string, aiResult: any): Promise<void> {
     console.log(`🏢 Updating company ${companyId} with AI result`);
+    
+    if (!this.apiKey) {
+      throw new Error('TWENTY_API_KEY is not configured');
+    }
     
     const companyData = aiResult.company_data || {};
     const services = aiResult.services || {};
@@ -93,8 +99,23 @@ class TwentyApiService {
       ...(services.tech_stack && { techStack: services.tech_stack }),
       ...(services.competitive_intel && { competitiveIntel: services.competitive_intel }),
       ...(services.recent_activity && { recentActivity: services.recent_activity }),
+      
+      // New fields for quality and growth signals
+      ...(aiResult.quality_signals && aiResult.quality_signals.length > 0 && { 
+        qualitySignals: aiResult.quality_signals 
+      }),
+      ...(aiResult.growth_signals && aiResult.growth_signals.length > 0 && { 
+        growthSignals: aiResult.growth_signals 
+      }),
+      ...(aiResult.industry_metrics && aiResult.industry_metrics.length > 0 && { 
+        industryMetrics: aiResult.industry_metrics 
+      }),
+      ...(companyData.other_locations && companyData.other_locations.length > 0 && { 
+        locations: companyData.other_locations 
+      }),
     };
 
+    console.log(`📤 Sending update data to Twenty:`, JSON.stringify(updateData, null, 2));
     await this.makeRequest(`companies/${companyId}`, 'PATCH', updateData);
     console.log(`✅ Company ${companyId} updated successfully`);
   }
@@ -107,38 +128,47 @@ class TwentyApiService {
 
     console.log(`👥 Creating ${people.length} people for company ${companyId}`);
     
-    const peopleData = people.map(person => ({
-      ...(person.email && { emails: { primaryEmail: person.email } }),
-      ...(person.first_name && { 
-        name: { 
-          firstName: person.first_name,
-          lastName: person.last_name || ''
-        } 
-      }),
-      ...(person.title && { jobTitle: person.title }),
-      companyId: companyId,
-      ...(person.linkedin && { 
-        linkedIn: { 
-          primaryLinkUrl: person.linkedin,
-          primaryLinkLabel: '' 
-        } 
-      }),
-      ...(person.twitter && { 
-        xLink: { 
-          primaryLinkUrl: person.twitter,
-          primaryLinkLabel: '' 
-        } 
-      }),
-      ...(person.phone && { 
-        phones: { 
-          primaryPhoneNumber: person.phone,
-          primaryPhoneCountryCode: '',
-          primaryPhoneCallingCode: ''
-        } 
-      }),
-    }));
+    // Create people one by one since batch creation might not be supported
+    for (const person of people) {
+      const personData = {
+        ...(person.email && { emails: { primaryEmail: person.email } }),
+        ...(person.first_name && { 
+          name: { 
+            firstName: person.first_name,
+            lastName: person.last_name || ''
+          } 
+        }),
+        ...(person.title && { jobTitle: person.title }),
+        companyId: companyId,
+        ...(person.linkedin && { 
+          linkedinLink: { 
+            primaryLinkUrl: person.linkedin,
+            primaryLinkLabel: '' 
+          } 
+        }),
+        ...(person.twitter && { 
+          xLink: { 
+            primaryLinkUrl: person.twitter,
+            primaryLinkLabel: '' 
+          } 
+        }),
+        ...(person.phone && { 
+          phones: { 
+            primaryPhoneNumber: person.phone,
+            primaryPhoneCountryCode: '',
+            primaryPhoneCallingCode: ''
+          } 
+        }),
+      };
 
-    await this.makeRequest('people', 'POST', peopleData);
+      try {
+        await this.makeRequest('people', 'POST', personData);
+        console.log(`✅ Created person: ${person.first_name} ${person.last_name}`);
+      } catch (error) {
+        console.error(`❌ Failed to create person ${person.first_name} ${person.last_name}:`, error);
+        // Continue with next person rather than failing entire batch
+      }
+    }
     console.log(`✅ Created ${people.length} people successfully`);
   }
 
@@ -150,25 +180,38 @@ class TwentyApiService {
     
     const noteData: TwentyNote = {
       title: `AI Enrichment - ${new Date().toLocaleDateString()}`,
-      body: noteBody,
+      bodyV2: {
+        markdown: noteBody, // ✅ RichTextV2 requires markdown field
+      },
     };
 
     // Create the note
     const noteResponse = await this.makeRequest('notes', 'POST', noteData);
     
+    // The actual response structure might be different, let's handle both cases
+    let noteId: string | null = null;
+    
     if (noteResponse.data?.createNote?.id) {
-      const noteId = noteResponse.data.createNote.id;
-      
+      noteId = noteResponse.data.createNote.id;
+    } else if (noteResponse.data?.notes?.[0]?.id) {
+      noteId = noteResponse.data.notes[0].id;
+    } else if (noteResponse.data?.id) {
+      noteId = noteResponse.data.id;
+    } else if (noteResponse.id) {
+      noteId = noteResponse.id;
+    }
+    
+    if (noteId) {
       // Link note to company
       const noteTargetData: TwentyNoteTarget = {
         noteId: noteId,
         companyId: companyId,
       };
 
-      await this.makeRequest('notetargets', 'POST', noteTargetData);
+      await this.makeRequest('noteTargets', 'POST', noteTargetData);
       console.log(`✅ Note created and linked to company ${companyId}`);
     } else {
-      console.log(`⚠️ Note created but could not retrieve ID for linking`);
+      console.log(`⚠️ Note created but could not retrieve ID for linking. Response:`, JSON.stringify(noteResponse, null, 2));
     }
   }
 

@@ -4,6 +4,8 @@ export interface TwentyApiResponse {
     message: string;
     extensions?: any;
   }>;
+  id?: string;
+  [key: string]: any;
 }
 
 export interface TwentyCompanyUpdate {
@@ -29,7 +31,10 @@ export interface TwentyPerson {
 
 export interface TwentyNote {
   title?: string;
-  body?: string;
+  bodyV2?: {
+    markdown: string;
+    blocknote?: string;
+  }; // ✅ RichTextV2 structure from GraphQL schema
   [key: string]: any;
 }
 

@@ -205,17 +205,42 @@ class ProcessorService {
       throw new Error('No processed data available for CRM sending');
     }
 
-    const processedData: ProcessedData = JSON.parse(company.processed_data);
-    
-    // Use CRM service to send data with sub-step tracking
-    await crmService.sendToCRM(company.company_id, processedData);
-    
-    queueService.addProcessLog({
-      company_id: company.company_id,
-      step: 'crm_sending',
-      status: 'completed',
-      message: 'Data sent to CRM successfully'
-    });
+    try {
+      const processedData: ProcessedData = JSON.parse(company.processed_data);
+      
+      // Validate that we have AI results
+      if (!processedData.ai_result) {
+        throw new Error('No AI result data available for CRM sending');
+      }
+      
+      console.log(`📊 AI result summary:`, {
+        has_company_data: !!processedData.ai_result.company_data,
+        has_people: !!(processedData.ai_result.people && processedData.ai_result.people.length > 0),
+        has_services: !!processedData.ai_result.services,
+        quality_signals_count: processedData.ai_result.quality_signals?.length || 0,
+        growth_signals_count: processedData.ai_result.growth_signals?.length || 0,
+      });
+      
+      // Use CRM service to send data with sub-step tracking
+      await crmService.sendToCRM(company.company_id, processedData);
+      
+      queueService.addProcessLog({
+        company_id: company.company_id,
+        step: 'crm_sending',
+        status: 'completed',
+        message: 'Data sent to CRM successfully'
+      });
+      
+    } catch (error) {
+      console.error(`❌ Error parsing processed data for ${company.company_id}:`, error);
+      queueService.addProcessLog({
+        company_id: company.company_id,
+        step: 'crm_sending',
+        status: 'failed',
+        message: `Failed to parse processed data: ${error instanceof Error ? error.message : 'Unknown error'}`
+      });
+      throw error;
+    }
   }
 
   private async simulateWebsiteCrawl(websiteUrl: string): Promise<string> {

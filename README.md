@@ -44,6 +44,10 @@ CLAUDE_MODEL=claude-3-haiku-20240307
 # Crawling Configuration
 CRAWL_MAX_DEPTH=3      # How many "clicks" deep to follow links (1=homepage only, 2=homepage+linked pages, 3=deeper)
 CRAWL_MAX_PAGES=20     # Maximum total pages to scrape (prevents crawling huge sites)
+
+# Twenty CRM API Configuration
+TWENTY_API_URL=https://20.afternoonltd.com
+TWENTY_API_KEY=your_twenty_api_key_here
 ```
 
 ### AI Prompt Customization
@@ -203,29 +207,59 @@ The system processes companies through 4 resumable steps:
 ## AI Integration
 
 ### Claude AI Analysis
-The system uses Claude AI to extract structured information from website content:
+The system uses Claude AI to extract structured information from website content into the new enhanced format:
 
 ```json
 {
   "company_data": {
     "name": "Company Name",
+    "description": "Detailed company description",
     "industry": "Technology",
-    "size": "medium",
-    "description": "Brief company description"
+    "size_category": "medium",
+    "employee_count": 150,
+    "employee_range": "100-200",
+    "founded_year": 2010,
+    "headquarters": "San Francisco, CA",
+    "other_locations": ["New York, NY", "Austin, TX"],
+    "phone": "+1-555-123-4567",
+    "linkedin": "https://linkedin.com/company/example",
+    "twitter": "https://twitter.com/example",
+    "facebook": "https://facebook.com/example",
+    "instagram": "https://instagram.com/example"
   },
-  "notes": [
-    {"title": "Business Overview", "content": "..."},
-    {"title": "Key Services & Products", "content": "..."}
+  "people": [
+    {
+      "email": "john.doe@example.com",
+      "title": "CEO",
+      "first_name": "John",
+      "last_name": "Doe",
+      "phone": "+1-555-123-4568",
+      "linkedin": "https://linkedin.com/in/johndoe"
+    }
   ],
-  "contacts": {
-    "emails": ["contact@company.com"],
-    "phones": ["+1-555-0123"]
+  "services": {
+    "company_overview": "Business description and mission",
+    "offerings": "Products and services offered",
+    "target_market": "Target industries and customer segments",
+    "tech_stack": "Technologies and platforms used",
+    "competitive_intel": "Competitive advantages and differentiators",
+    "recent_activity": "Recent news, launches, and developments"
   },
-  "extracted_data": {
-    "services": ["Service 1", "Service 2"],
-    "technologies": ["Tech 1", "Tech 2"],
-    "keywords": ["keyword1", "keyword2"]
-  }
+  "quality_signals": [
+    "Fortune 500 clients",
+    "ISO 27001 certified",
+    "Industry awards and recognition"
+  ],
+  "growth_signals": [
+    "200% YoY revenue growth",
+    "Expanded to new markets",
+    "Recent funding rounds"
+  ],
+  "industry_metrics": [
+    "Technology: 150 employees, $15M ARR",
+    "SaaS: 500+ enterprise clients, 2% churn rate"
+  ],
+  "notes": "Additional valuable information and context"
 }
 ```
 
@@ -259,14 +293,32 @@ Edit `src/services/ai/prompt.txt` to customize AI analysis. The prompt supports 
 - `data` - Optional JSON data
 - `created_at` - Log creation timestamp
 
-## CRM Integration
+## Twenty CRM Integration
 
-The system is designed to integrate with Twenty CRM through a multi-step process:
+The system fully integrates with Twenty CRM through a multi-step process:
 
-1. **Contact Creation/Update**: Create or update contact records
-2. **Company Information**: Update company fields with extracted data
-3. **Notes Addition**: Add structured analysis as notes
-4. **Custom Fields**: Update custom fields with extracted information
+### Implementation Status: ✅ **FULLY WORKING**
+
+1. **People Creation**: ✅ Creates people/contacts and links them to companies
+2. **Company Updates**: ✅ Updates company fields with AI-extracted data including:
+   - Basic info (name, industry, employees, founded year, headquarters)
+   - Social links (LinkedIn, Twitter, Facebook, Instagram)
+   - Business data (overview, offerings, target market, tech stack, competitive intel, recent activity)
+   - Quality signals, growth signals, industry metrics, locations
+3. **Notes Addition**: ⚠️ Temporarily disabled due to Twenty API field metadata requirements
+4. **Custom Fields**: ✅ Handled through company updates
+
+### Integration Flow
+1. Webhook receives company data → Queues for processing
+2. Website crawling → Extracts content using Python/Scrapy
+3. AI processing → Claude AI analyzes content (with fallback to mock data)
+4. Twenty CRM updates → All company and people data updated
+
+### Testing
+Run the complete integration test:
+```bash
+node test-integration.js
+```
 
 Each sub-step is tracked and can be resumed independently if failures occur.
 
@@ -281,11 +333,14 @@ src/
 ├── services/            # Business logic
 │   ├── ai/             # Claude AI integration
 │   │   ├── claudeAI.ts # AI service
-│   │   └── prompt.txt  # Editable prompt
-│   ├── crmService.ts   # CRM integration (placeholder)
+│   │   └── prompt.txt  # Editable prompt (enhanced format)
+│   ├── twenty/         # Twenty CRM integration
+│   │   └── twentyApi.ts # Twenty API service (WORKING)
+│   ├── crmApi.ts       # CRM API service for fetching company data
+│   ├── crmService.ts   # CRM integration orchestrator (WORKING)
 │   ├── processor.ts    # Main processing orchestrator
 │   ├── queueService.ts # Queue management
-│   └── websiteScraper.ts # Web scraping
+│   └── websiteScraper.ts # Web scraping (Python/Scrapy)
 ├── types/              # TypeScript types
 └── utils/              # Utilities and validation
 ```

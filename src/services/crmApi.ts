@@ -85,7 +85,7 @@ class CRMApiService {
   private baseUrl: string;
 
   constructor() {
-    this.baseUrl = process.env.TWENTY_URL || 'https://20.afternoonltd.com';
+    this.baseUrl = process.env.TWENTY_API_URL || 'https://20.afternoonltd.com';
   }
 
   async getCompanyById(companyId: string): Promise<CRMCompany | null> {
