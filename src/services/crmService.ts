@@ -1,4 +1,5 @@
 import { ProcessedData, CRMProgress } from '../types';
+import twentyApi from './twenty/twentyApi';
 
 interface CRMSubStep {
   name: keyof CRMProgress;
@@ -40,7 +41,7 @@ class CRMService {
         console.log(`  ➡️ Executing: ${step.description}`);
         
         try {
-          await step.execute(processedData.ai_result);
+          await step.execute({ companyId, aiResult: processedData.ai_result });
           
           // Update progress
           progress[step.name] = true;
@@ -60,40 +61,31 @@ class CRMService {
     console.log(`✅ CRM integration completed for ${companyId}`);
   }
 
-  private async createContact(_data: any): Promise<void> {
-    // TODO: Implement actual Twenty CRM contact creation
-    // This would involve:
-    // 1. Check if contact already exists
-    // 2. Create new contact or update existing
-    // 3. Handle API authentication
-    await new Promise(resolve => setTimeout(resolve, 500));
+  private async createContact(data: { companyId: string; aiResult: any }): Promise<void> {
+    const { companyId, aiResult } = data;
+    const people = aiResult.people || [];
+    
+    if (people.length > 0) {
+      await twentyApi.createPeople(companyId, people);
+    } else {
+      console.log(`ℹ️ No people found in AI result for company ${companyId}`);
+    }
   }
 
-  private async updateCompany(_data: any): Promise<void> {
-    // TODO: Implement actual Twenty CRM company update
-    // This would involve:
-    // 1. Find company record
-    // 2. Update company fields with extracted data
-    // 3. Handle field mapping from AI result to CRM fields
-    await new Promise(resolve => setTimeout(resolve, 300));
+  private async updateCompany(data: { companyId: string; aiResult: any }): Promise<void> {
+    const { companyId, aiResult } = data;
+    await twentyApi.updateCompany(companyId, aiResult);
   }
 
-  private async addNotes(_data: any): Promise<void> {
-    // TODO: Implement actual Twenty CRM note creation
-    // This would involve:
-    // 1. Create activity/note records
-    // 2. Add extracted content as formatted notes
-    // 3. Link notes to company/contact
-    await new Promise(resolve => setTimeout(resolve, 200));
+  private async addNotes(data: { companyId: string; aiResult: any }): Promise<void> {
+    const { companyId, aiResult } = data;
+    await twentyApi.createNoteWithTarget(companyId, aiResult);
   }
 
-  private async updateCustomFields(_data: any): Promise<void> {
-    // TODO: Implement actual Twenty CRM custom field updates
-    // This would involve:
-    // 1. Map extracted data to custom fields
-    // 2. Update field values via API
-    // 3. Handle field type conversions
-    await new Promise(resolve => setTimeout(resolve, 100));
+  private async updateCustomFields(data: { companyId: string; aiResult: any }): Promise<void> {
+    // Custom fields are handled through the main company update
+    // This step is kept for progress tracking compatibility
+    console.log(`ℹ️ Custom fields updated via company update for ${data.companyId}`);
   }
 }
 
