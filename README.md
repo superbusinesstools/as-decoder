@@ -2,6 +2,14 @@
 
 A resumable queue management system for web crawling operations with Claude AI integration and CRM automation.
 
+## Quick Deployment
+
+Deploy latest changes to production server:
+```bash
+npm run deploy
+```
+This will automatically: pull latest code → install dependencies → build → restart PM2
+
 ## Features
 
 - **Resumable Processing**: Steps can be resumed from where they failed
@@ -19,7 +27,7 @@ A resumable queue management system for web crawling operations with Claude AI i
 ## Installation
 
 ```bash
-pnpm install
+npm install
 ```
 
 ## Configuration
@@ -57,72 +65,74 @@ Edit the AI analysis prompt in `src/services/ai/prompt.txt` to customize how Cla
 
 ### Development
 ```bash
-pnpm dev
+npm run dev
 ```
 
 ### Production
 ```bash
-pnpm build
-pnpm start           # Start with pm2 (includes auto-watch)
+npm run build
+npm start           # Start with pm2 (includes auto-watch)
 ```
 
 ### Development with Auto-Restart
 ```bash
 # Option 1: PM2 with watch mode (recommended for production-like environment)
-pnpm build
-pnpm start            # Automatically watches dist/ folder for changes
+npm run build
+npm start            # Automatically watches dist/ folder for changes
 
 # Option 2: Direct development mode
-pnpm dev              # Uses ts-node for immediate TypeScript execution
+npm run dev          # Uses ts-node for immediate TypeScript execution
 
 # When using PM2 watch mode, rebuild to trigger restart:
-pnpm build            # PM2 will automatically restart when dist/ changes
+npm run build        # PM2 will automatically restart when dist/ changes
 ```
 
 ### Deployment
 ```bash
-# Auto-deploy: pull changes, build, and restart pm2
-pnpm deploy
+# 🚀 One-command deployment (recommended)
+npm run deploy
 
 # Manual deployment steps:
 git pull origin master
-pnpm install
-pnpm build
-pnpm run pm2:restart
+npm install
+npm run build
+npm run pm2:restart
 ```
+
+**Note**: The `npm run deploy` script automatically handles all deployment steps and provides status feedback.
 
 ### PM2 Management
 ```bash
-pnpm run pm2:start      # Start with ecosystem config (auto-watch enabled)
-pnpm run pm2:start-watch # Start with explicit watch mode
-pnpm run pm2:restart    # Restart the process
-pnpm run pm2:reload     # Graceful reload (zero-downtime)
-pnpm run pm2:stop       # Stop the process
-pnpm run pm2:logs       # View logs
+npm run pm2:start      # Start with ecosystem config (auto-watch enabled)
+npm run pm2:start-watch # Start with explicit watch mode
+npm run pm2:restart    # Restart the process
+npm run pm2:reload     # Graceful reload (zero-downtime)
+npm run pm2:stop       # Stop the process
+npm run pm2:logs       # View logs
 ```
 
 ### Testing
 ```bash
-pnpm test
+npm test
 ```
 
 ### Utility Scripts
 ```bash
-pnpm run reset          # Reset database
-pnpm run seed           # Seed test data
-pnpm run scrape         # Test scraping functionality
+npm run reset          # Reset database
+npm run seed           # Seed test data
+npm run scrape         # Test scraping functionality
 ```
 
 #### Testing Scraping with Different Settings
 ```bash
 # Use environment defaults (depth=3, pages=20)
-pnpm scrape https://example.com
+npm run scrape https://example.com
 
 # Override depth and pages
-pnpm scrape https://example.com --depth 2 --max-pages 10
+npm run scrape https://example.com --depth 2 --max-pages 10
 
 # Verbose output for debugging
-pnpm scrape https://example.com --verbose
+npm run scrape https://example.com --verbose
 ```
 
 ## API Endpoints
