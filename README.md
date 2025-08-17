@@ -135,7 +135,32 @@ Queue a company for processing.
 {
   "company_id": "unique-company-id",
   "website_url": "https://example.com",
-  "source_url": "https://source.example.com"
+  "source_url": "https://source.example.com"  // Optional - if not provided, fetches from CRM
+}
+```
+
+**Fields:**
+- `company_id` (required): Unique identifier for the company
+- `website_url` (required): Company website URL to crawl
+- `source_url` (optional): Specific URL to crawl. If not provided, the system will:
+  1. Look up the company in Twenty CRM by `company_id`
+  2. Use the `sourceUrl` field from CRM if available
+  3. Fall back to using `website_url` if CRM lookup fails or no `sourceUrl` found
+
+**Example with source_url:**
+```json
+{
+  "company_id": "abc123",
+  "website_url": "https://example.com",
+  "source_url": "https://specific.example.com/landing"
+}
+```
+
+**Example without source_url (CRM lookup):**
+```json
+{
+  "company_id": "abc123",
+  "website_url": "https://example.com"
 }
 ```
 
@@ -350,3 +375,8 @@ To add additional AI providers, extend the AI service in `src/services/ai/` whil
 
 ### Webhook Integration
 The system is designed to receive webhook requests from CRM systems. Companies are automatically processed in the background every 5 seconds.
+
+#### Webhook Flexibility
+- **Optional source_url**: Webhooks can omit the `source_url` field - the system will automatically fetch it from the CRM record
+- **CRM Fallback**: If CRM lookup fails, the system gracefully falls back to using the provided `website_url`
+- **Smart URL Validation**: URLs are automatically validated and normalized for consistent processing

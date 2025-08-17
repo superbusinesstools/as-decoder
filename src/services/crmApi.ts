@@ -96,6 +96,7 @@ class CRMApiService {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
+          'Authorization': `Bearer ${process.env.TWENTY_API_KEY}`,
         },
       });
 

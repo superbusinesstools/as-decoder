@@ -4,6 +4,22 @@ import { validateCompanyQueue } from '../utils/validation';
 import crmApi from '../services/crmApi';
 
 export class QueueController {
+  private validateAndNormalizeUrl(url: string): string {
+    try {
+      const parsedUrl = new URL(url);
+      if (!['http:', 'https:'].includes(parsedUrl.protocol)) {
+        console.warn(`⚠ Invalid protocol ${parsedUrl.protocol}, using https://`);
+        return `https://${url.replace(/^[^:]+:\/\//, '')}`;
+      }
+      return parsedUrl.toString();
+    } catch (error) {
+      console.warn(`⚠ Invalid URL format: ${url}, attempting to fix`);
+      if (!url.startsWith('http://') && !url.startsWith('https://')) {
+        return `https://${url}`;
+      }
+      return url;
+    }
+  }
   async addToQueue(req: Request, res: Response): Promise<void> {
     try {
       const { error, value } = validateCompanyQueue(req.body);
@@ -20,21 +36,30 @@ export class QueueController {
       let companyData = value!;
 
       if (!companyData.source_url) {
+        console.log(`source_url not provided, fetching from CRM for company ID: ${companyData.company_id}`);
+        
         try {
-          console.log(`Fetching company data from CRM for ID: ${companyData.company_id}`);
           const crmCompany = await crmApi.getCompanyById(companyData.company_id);
           
-          if (crmCompany && crmCompany.sourceUrl) {
+          if (crmCompany?.sourceUrl) {
             companyData.source_url = crmCompany.sourceUrl;
-            console.log(`Retrieved source_url from CRM: ${crmCompany.sourceUrl}`);
+            console.log(`✓ Retrieved source_url from CRM: ${crmCompany.sourceUrl}`);
           } else {
-            console.warn(`No source_url found in CRM for company ${companyData.company_id}`);
-            companyData.source_url = companyData.website_url;
+            console.warn(`⚠ Company found in CRM but no sourceUrl field available for ID: ${companyData.company_id}`);
+            console.log(`→ Falling back to website_url: ${companyData.website_url}`);
+            companyData.source_url = this.validateAndNormalizeUrl(companyData.website_url);
           }
-        } catch (crmError) {
-          console.error(`Failed to fetch company from CRM: ${crmError}`);
-          companyData.source_url = companyData.website_url;
+        } catch (crmError: any) {
+          if (crmError.message?.includes('404')) {
+            console.warn(`⚠ Company not found in CRM (ID: ${companyData.company_id})`);
+          } else {
+            console.error(`✗ CRM API error for company ${companyData.company_id}:`, crmError.message || crmError);
+          }
+          console.log(`→ Falling back to website_url: ${companyData.website_url}`);
+          companyData.source_url = this.validateAndNormalizeUrl(companyData.website_url);
         }
+      } else {
+        console.log(`✓ Using provided source_url: ${companyData.source_url}`);
       }
 
       const company = queueService.createCompany(companyData);
