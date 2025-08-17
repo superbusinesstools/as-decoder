@@ -35,6 +35,11 @@ export class QueueController {
 
       let companyData = value!;
 
+      // Treat empty string as undefined
+      if (!companyData.source_url || companyData.source_url.trim() === '') {
+        companyData.source_url = undefined;
+      }
+
       if (!companyData.source_url) {
         console.log(`source_url not provided, fetching from CRM for company ID: ${companyData.company_id}`);
         

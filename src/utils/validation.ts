@@ -23,12 +23,15 @@ export const companyQueueSchema = Joi.object<CompanyQueueRequest>({
       'any.required': 'website_url is required'
     }),
   
-  source_url: Joi.string()
-    .trim()
-    .uri({ scheme: ['http', 'https'] })
+  source_url: Joi.alternatives()
+    .try(
+      Joi.string().trim().uri({ scheme: ['http', 'https'] }),
+      Joi.string().allow(''),
+      Joi.allow(null)
+    )
     .optional()
     .messages({
-      'string.uri': 'source_url must be a valid URL'
+      'alternatives.match': 'source_url must be a valid URL or empty'
     })
 });
 
