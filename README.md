@@ -282,7 +282,26 @@ Log format:
 ### API Monitoring
 - **Individual Status**: `GET /api/queue/COMPANY_ID` - Detailed status and logs for specific company
 - **Recent Overview**: `GET /api/queue/status/recent?limit=20` - List of recent processing requests
+- **Failed Jobs**: `GET /api/queue/status/failed` - List of all failed jobs
+- **Restart Job**: `POST /api/queue/COMPANY_ID/restart` - Restart a failed job from last successful step
 - **Health Check**: `GET /health` - Server status
+
+### Restarting Failed Jobs
+
+**View failed jobs:**
+```bash
+curl https://as-decoder.afternoonltd.com/api/queue/status/failed
+```
+
+**Restart a specific job:**
+```bash
+curl -X POST https://as-decoder.afternoonltd.com/api/queue/COMPANY_ID/restart
+```
+
+The system intelligently restarts from the last successful step:
+- If crawling failed → restarts from beginning
+- If AI processing failed → restarts from AI step (keeps crawled data)
+- If CRM sending failed → restarts from CRM step (keeps all previous data)
 
 ## Processing Workflow
 

@@ -77,7 +77,26 @@ if [ -n "$RECENT_DATA" ]; then
 fi
 
 echo ""
+
+# Show failed jobs if any exist
+FAILED_DATA=$(curl -s "${BASE_URL}/queue/status/failed" | jq -r '.data.companies[]? // empty | "\(.company_id)|\(.created_at)"')
+
+if [ -n "$FAILED_DATA" ]; then
+    echo "❌ Failed Jobs:"
+    echo "---------------------------------"
+    echo "$FAILED_DATA" | while IFS='|' read -r company_id created_at; do
+        formatted_date=$(date -d "$created_at" "+%m/%d %H:%M" 2>/dev/null || echo "$created_at")
+        printf "%-23s | %s\n" "${company_id:0:22}" "$formatted_date"
+    done
+    echo ""
+    echo "🔄 To restart a failed job:"
+    echo "   curl -X POST ${BASE_URL}/queue/COMPANY_ID/restart"
+    echo ""
+fi
+
 echo "💡 Tips:"
 echo "   • Get details: curl ${BASE_URL}/queue/COMPANY_ID"
+echo "   • View failed jobs: curl ${BASE_URL}/queue/status/failed"
+echo "   • Restart job: curl -X POST ${BASE_URL}/queue/COMPANY_ID/restart"
 echo "   • View server logs: npm run pm2:logs"
 echo "   • Check health: curl ${BASE_URL}/health"

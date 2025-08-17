@@ -153,6 +153,58 @@ export class QueueController {
       });
     }
   }
+
+  async getFailedJobs(req: Request, res: Response): Promise<void> {
+    try {
+      const companies = queueService.getFailedCompanies();
+
+      res.json({
+        success: true,
+        data: {
+          companies,
+          count: companies.length
+        }
+      });
+    } catch (error) {
+      console.error('Get failed jobs error:', error);
+      res.status(500).json({
+        success: false,
+        error: 'Internal server error',
+        message: 'Failed to get failed jobs'
+      });
+    }
+  }
+
+  async restartJob(req: Request, res: Response): Promise<void> {
+    try {
+      const { company_id } = req.params;
+
+      const success = queueService.restartCompany(company_id);
+      
+      if (!success) {
+        res.status(404).json({
+          success: false,
+          error: 'Not found',
+          message: `Company with ID ${company_id} not found`
+        });
+        return;
+      }
+
+      console.log(`🔄 Restarted job for company: ${company_id}`);
+
+      res.json({
+        success: true,
+        message: `Job restarted for company ${company_id}`
+      });
+    } catch (error) {
+      console.error('Restart job error:', error);
+      res.status(500).json({
+        success: false,
+        error: 'Internal server error',
+        message: 'Failed to restart job'
+      });
+    }
+  }
 }
 
 export default new QueueController();

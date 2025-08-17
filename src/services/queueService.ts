@@ -91,6 +91,51 @@ export class QueueService {
     `);
     return stmt.all(limit) as Company[];
   }
+
+  getFailedCompanies(): Company[] {
+    const stmt = db.prepare(`
+      SELECT * FROM companies 
+      WHERE status = 'failed'
+      ORDER BY created_at DESC
+    `);
+    return stmt.all() as Company[];
+  }
+
+  restartCompany(companyId: string): boolean {
+    const company = this.getCompanyById(companyId);
+    if (!company) {
+      return false;
+    }
+
+    // Reset to last successful step or beginning
+    let newStep = 'pending';
+    let newStatus = 'pending';
+
+    if (company.raw_data) {
+      newStep = 'ai_processing';
+    }
+    if (company.processed_data) {
+      newStep = 'crm_sending';
+    }
+
+    const stmt = db.prepare(`
+      UPDATE companies 
+      SET status = ?, current_step = ?
+      WHERE company_id = ?
+    `);
+    
+    stmt.run(newStatus, newStep, companyId);
+
+    // Add restart log
+    this.addProcessLog({
+      company_id: companyId,
+      step: 'received',
+      status: 'started',
+      message: `Job restarted from step: ${newStep}`
+    });
+
+    return true;
+  }
 }
 
 export default new QueueService();
