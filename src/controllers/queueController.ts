@@ -131,6 +131,28 @@ export class QueueController {
       });
     }
   }
+
+  async getRecentStatus(req: Request, res: Response): Promise<void> {
+    try {
+      const limit = parseInt(req.query.limit as string) || 10;
+      const companies = queueService.getRecentCompanies(Math.min(limit, 50)); // Cap at 50
+
+      res.json({
+        success: true,
+        data: {
+          companies,
+          count: companies.length
+        }
+      });
+    } catch (error) {
+      console.error('Get recent status error:', error);
+      res.status(500).json({
+        success: false,
+        error: 'Internal server error',
+        message: 'Failed to get recent status'
+      });
+    }
+  }
 }
 
 export default new QueueController();

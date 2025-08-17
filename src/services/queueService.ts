@@ -82,6 +82,15 @@ export class QueueService {
     const getLog = db.prepare('SELECT * FROM process_logs WHERE id = ?');
     return getLog.get(info.lastInsertRowid) as ProcessLog;
   }
+
+  getRecentCompanies(limit: number = 10): Company[] {
+    const stmt = db.prepare(`
+      SELECT * FROM companies 
+      ORDER BY created_at DESC 
+      LIMIT ?
+    `);
+    return stmt.all(limit) as Company[];
+  }
 }
 
 export default new QueueService();

@@ -121,6 +121,7 @@ npm test
 npm run reset          # Reset database
 npm run seed           # Seed test data
 npm run scrape         # Test scraping functionality
+npm run status         # View processing status and recent requests
 ```
 
 #### Testing Scraping with Different Settings
@@ -224,6 +225,64 @@ Get company status and process logs.
 
 ### GET /health
 Health check endpoint.
+
+### GET /api/queue/status/recent
+Get recent processing status for all companies.
+
+**Query Parameters:**
+- `limit` (optional): Number of companies to return (default: 10, max: 50)
+
+**Response (200):**
+```json
+{
+  "success": true,
+  "data": {
+    "companies": [
+      {
+        "id": 1,
+        "company_id": "abc123",
+        "status": "completed",
+        "current_step": "completed",
+        "created_at": "2024-01-01T12:00:00.000Z"
+      }
+    ],
+    "count": 1
+  }
+}
+```
+
+## Monitoring & Status
+
+### CLI Status Monitor
+Use the built-in status monitor to quickly check processing progress:
+
+```bash
+npm run status
+```
+
+This displays:
+- 📊 Recent requests (last 10) with status and processing step
+- 📈 Quick stats (total, completed, failed, processing)
+- 💡 Helpful commands for deeper investigation
+
+### Real-time Logs
+Monitor real-time processing with emoji-coded logs:
+
+```bash
+npm run pm2:logs
+```
+
+Log format:
+- 🔄 Processing started
+- 🌐 Website crawling
+- 🤖 AI processing  
+- 📤 CRM sending
+- ✅ Completed / ❌ Failed
+
+### API Monitoring
+- **Individual Status**: `GET /api/queue/COMPANY_ID` - Detailed status and logs for specific company
+- **Recent Overview**: `GET /api/queue/status/recent?limit=20` - List of recent processing requests
+- **Health Check**: `GET /health` - Server status
 
 ## Processing Workflow
 

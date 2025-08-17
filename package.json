@@ -15,6 +15,7 @@
 		"seed:bash": "./scripts/seed-queue.sh",
 		"reset": "./scripts/reset-db.sh",
 		"scrape": "./scripts/scraper/run_scraper.sh",
+		"status": "./scripts/status.sh",
 		"deploy": "./scripts/deploy.sh",
 		"pm2:start": "pm2 start ecosystem.config.js",
 		"pm2:start-watch": "pm2 start ecosystem.config.js --watch",

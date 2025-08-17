@@ -132,7 +132,7 @@ class ProcessorService {
   }
 
   private async performCrawling(company: Company): Promise<void> {
-    console.log(`🕷️ Starting crawling for ${company.company_id}`);
+    console.log(`🌐 Starting crawling for ${company.company_id} -> ${company.source_url}`);
     
     queueService.addProcessLog({
       company_id: company.company_id,
@@ -144,6 +144,8 @@ class ProcessorService {
     const rawData = await this.simulateWebsiteCrawl(company.website_url);
     
     this.updateCompanyRawData(company.company_id, rawData);
+    console.log(`✅ Crawling completed for ${company.company_id} (${rawData.length} chars extracted)`);
+    
     queueService.addProcessLog({
       company_id: company.company_id,
       step: 'crawling',
@@ -181,6 +183,8 @@ class ProcessorService {
     };
     
     this.updateCompanyProcessedData(company.company_id, JSON.stringify(processedData, null, 2));
+    console.log(`✅ AI processing completed for ${company.company_id} (${aiAnalysis.people?.length || 0} people, ${aiAnalysis.quality_signals?.length || 0} quality signals)`);
+    
     queueService.addProcessLog({
       company_id: company.company_id,
       step: 'ai_processing',
@@ -223,6 +227,8 @@ class ProcessorService {
       
       // Use CRM service to send data with sub-step tracking
       await crmService.sendToCRM(company.company_id, processedData);
+      
+      console.log(`✅ CRM sending completed for ${company.company_id}`);
       
       queueService.addProcessLog({
         company_id: company.company_id,
