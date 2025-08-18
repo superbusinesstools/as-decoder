@@ -4,7 +4,7 @@
 	"description": "Web crawler queue system",
 	"main": "dist/server.js",
 	"scripts": {
-		"build": "tsc",
+		"build": "tsc && cp src/services/ai/prompt.txt dist/services/ai/",
 		"start": "pm2 start ecosystem.config.js",
 		"dev": "ts-node src/server.ts",
 		"dev:fresh": "./scripts/reset-db.sh && npm run dev",

@@ -92,11 +92,15 @@ class CRMApiService {
     try {
       const url = `${this.baseUrl}/rest/companies/${companyId}`;
       
+      // Ensure the API key is properly encoded
+      const apiKey = process.env.TWENTY_API_KEY || '';
+      const authHeader = `Bearer ${apiKey}`.replace(/[\x00-\x1F\x7F-\xFF]/g, '');
+      
       const response = await fetch(url, {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${process.env.TWENTY_API_KEY}`,
+          'Authorization': authHeader,
         },
       });
 
