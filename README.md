@@ -122,6 +122,7 @@ npm run reset          # Reset database
 npm run seed           # Seed test data
 npm run scrape         # Test scraping functionality
 npm run status         # View processing status and recent requests
+npm run restart        # Restart all failed jobs or specific job by ID
 ```
 
 #### Testing Scraping with Different Settings
@@ -288,20 +289,35 @@ Log format:
 
 ### Restarting Failed Jobs
 
-**View failed jobs:**
+**Simple restart commands:**
 ```bash
-curl https://as-decoder.afternoonltd.com/api/queue/status/failed
+npm run restart                    # Restart all failed jobs automatically
+npm run restart COMPANY_ID         # Restart specific job by ID
+npm run status                     # Check for failed jobs with full IDs
 ```
 
-**Restart a specific job:**
+**API endpoints:**
 ```bash
-curl -X POST https://as-decoder.afternoonltd.com/api/queue/COMPANY_ID/restart
+curl https://as-decoder.afternoonltd.com/api/queue/status/failed      # View failed jobs
+curl -X POST https://as-decoder.afternoonltd.com/api/queue/COMPANY_ID/restart  # Restart specific job
 ```
 
 The system intelligently restarts from the last successful step:
 - If crawling failed → restarts from beginning
 - If AI processing failed → restarts from AI step (keeps crawled data)
 - If CRM sending failed → restarts from CRM step (keeps all previous data)
+
+**Example workflow:**
+```bash
+# Check processing status
+npm run status
+
+# If failed jobs are shown, restart them all
+npm run restart
+
+# Or restart a specific job
+npm run restart dr-petes-003
+```
 
 ## Processing Workflow
 

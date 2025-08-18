@@ -30,8 +30,8 @@ RECENT_DATA=$(curl -s "${BASE_URL}/queue/status/recent" | jq -r '.data.companies
 if [ -z "$RECENT_DATA" ]; then
     echo "   No requests found in database"
 else
-    echo "Company ID              | Status     | Step          | Created"
-    echo "------------------------|------------|---------------|------------------"
+    echo "Company ID                              | Status     | Step          | Created"
+    echo "----------------------------------------|------------|---------------|------------------"
     echo "$RECENT_DATA" | while IFS='|' read -r company_id status current_step created_at; do
         # Format the created_at timestamp
         formatted_date=$(date -d "$created_at" "+%m/%d %H:%M" 2>/dev/null || echo "$created_at")
@@ -55,8 +55,8 @@ else
             *)                step_icon="❓" ;;
         esac
         
-        printf "%-23s | %s %-8s | %s %-12s | %s\n" \
-            "${company_id:0:22}" \
+        printf "%-39s | %s %-8s | %s %-12s | %s\n" \
+            "$company_id" \
             "$status_icon" "$status" \
             "$step_icon" "$current_step" \
             "$formatted_date"
@@ -83,20 +83,21 @@ FAILED_DATA=$(curl -s "${BASE_URL}/queue/status/failed" | jq -r '.data.companies
 
 if [ -n "$FAILED_DATA" ]; then
     echo "❌ Failed Jobs:"
-    echo "---------------------------------"
+    echo "----------------------------------------------------"
     echo "$FAILED_DATA" | while IFS='|' read -r company_id created_at; do
         formatted_date=$(date -d "$created_at" "+%m/%d %H:%M" 2>/dev/null || echo "$created_at")
-        printf "%-23s | %s\n" "${company_id:0:22}" "$formatted_date"
+        printf "%-39s | %s\n" "$company_id" "$formatted_date"
     done
     echo ""
-    echo "🔄 To restart a failed job:"
-    echo "   curl -X POST ${BASE_URL}/queue/COMPANY_ID/restart"
+    echo "🔄 To restart failed jobs:"
+    echo "   npm run restart                    # Restart all failed jobs"
+    echo "   npm run restart COMPANY_ID         # Restart specific job"
     echo ""
 fi
 
 echo "💡 Tips:"
 echo "   • Get details: curl ${BASE_URL}/queue/COMPANY_ID"
 echo "   • View failed jobs: curl ${BASE_URL}/queue/status/failed"
-echo "   • Restart job: curl -X POST ${BASE_URL}/queue/COMPANY_ID/restart"
+echo "   • Restart failed jobs: npm run restart"
 echo "   • View server logs: npm run pm2:logs"
 echo "   • Check health: curl ${BASE_URL}/health"
