@@ -122,7 +122,7 @@ npm run reset          # Reset database
 npm run seed           # Seed test data
 npm run scrape         # Test scraping functionality
 npm run status         # View processing status and recent requests
-npm run restart        # Restart all failed jobs or specific job by ID
+npm run restart-jobs   # Restart all failed jobs or specific job by ID
 ```
 
 #### Testing Scraping with Different Settings
@@ -291,8 +291,8 @@ Log format:
 
 **Simple restart commands:**
 ```bash
-npm run restart                    # Restart all failed jobs automatically
-npm run restart COMPANY_ID         # Restart specific job by ID
+npm run restart-jobs               # Restart all failed jobs automatically
+npm run restart-jobs COMPANY_ID    # Restart specific job by ID
 npm run status                     # Check for failed jobs with full IDs
 ```
 
@@ -313,10 +313,10 @@ The system intelligently restarts from the last successful step:
 npm run status
 
 # If failed jobs are shown, restart them all
-npm run restart
+npm run restart-jobs
 
 # Or restart a specific job
-npm run restart dr-petes-003
+npm run restart-jobs dr-petes-003
 ```
 
 ## Processing Workflow

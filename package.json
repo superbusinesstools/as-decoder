@@ -23,7 +23,7 @@
 		"pm2:reload": "pm2 reload as-decoder",
 		"pm2:stop": "pm2 stop as-decoder",
 		"pm2:logs": "pm2 logs as-decoder --lines 200",
-		"restart": "./scripts/restart-failed.sh"
+		"restart-jobs": "./scripts/restart-failed.sh"
 	},
 	"dependencies": {
 		"@anthropic-ai/sdk": "^0.32.1",

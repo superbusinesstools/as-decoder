@@ -90,14 +90,14 @@ if [ -n "$FAILED_DATA" ]; then
     done
     echo ""
     echo "🔄 To restart failed jobs:"
-    echo "   npm run restart                    # Restart all failed jobs"
-    echo "   npm run restart COMPANY_ID         # Restart specific job"
+    echo "   npm run restart-jobs               # Restart all failed jobs"
+    echo "   npm run restart-jobs COMPANY_ID    # Restart specific job"
     echo ""
 fi
 
-echo "💡 Tips:"
-echo "   • Get details: curl ${BASE_URL}/queue/COMPANY_ID"
-echo "   • View failed jobs: curl ${BASE_URL}/queue/status/failed"
-echo "   • Restart failed jobs: npm run restart"
+echo "💡 Quick Commands:"
+echo "   • Restart all failed jobs: npm run restart-jobs"
+echo "   • Restart specific job: npm run restart-jobs COMPANY_ID"
 echo "   • View server logs: npm run pm2:logs"
-echo "   • Check health: curl ${BASE_URL}/health"
+echo "   • Get job details: curl ${BASE_URL}/queue/COMPANY_ID"
+echo "   • Check server health: curl ${BASE_URL}/health"
