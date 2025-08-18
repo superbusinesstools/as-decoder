@@ -1,12 +1,86 @@
 import { spawn } from 'child_process';
 import path from 'path';
+import fetch from 'node-fetch';
 
 export class WebsiteScraper {
+    private scraperApiUrl: string;
+
     constructor(_options: { maxDepth?: number } = {}) {
         // maxDepth is now handled in scrapeWebsite method
+        this.scraperApiUrl = process.env.SCRAPER_API_URL || 'http://localhost:8080';
     }
 
     async scrapeWebsite(startUrl: string, maxDepth: number = 2, maxPages: number = 10): Promise<{
+        success: boolean;
+        content: string[];
+        emails: string[];
+        links: string[];
+        pagesVisited: number;
+        error?: string;
+    }> {
+        // Try API first, fallback to subprocess if API is not available
+        try {
+            const apiResult = await this.scrapeViaAPI(startUrl, maxDepth, maxPages);
+            if (apiResult) {
+                return apiResult;
+            }
+        } catch (error) {
+            console.warn('⚠️ Scraper API not available, falling back to subprocess:', error instanceof Error ? error.message : 'Unknown error');
+        }
+
+        // Fallback to subprocess method
+        return this.scrapeViaSubprocess(startUrl, maxDepth, maxPages);
+    }
+
+    private async scrapeViaAPI(startUrl: string, maxDepth: number, maxPages: number): Promise<{
+        success: boolean;
+        content: string[];
+        emails: string[];
+        links: string[];
+        pagesVisited: number;
+        error?: string;
+    } | null> {
+        try {
+            // Check if API is healthy
+            const healthResponse = await fetch(`${this.scraperApiUrl}/health`, {
+                method: 'GET',
+                timeout: 5000
+            });
+            
+            if (!healthResponse.ok) {
+                throw new Error(`Health check failed: ${healthResponse.status}`);
+            }
+
+            // Make scraping request
+            const response = await fetch(`${this.scraperApiUrl}/scrape`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    url: startUrl,
+                    max_depth: maxDepth,
+                    max_pages: maxPages
+                }),
+                timeout: 300000  // 5 minute timeout
+            });
+
+            if (!response.ok) {
+                const errorText = await response.text();
+                throw new Error(`API request failed: ${response.status} - ${errorText}`);
+            }
+
+            const result = await response.json();
+            console.log(`✅ Scraping via API completed for ${startUrl} (${result.pagesVisited} pages)`);
+            return result;
+
+        } catch (error) {
+            console.error('❌ API scraping failed:', error instanceof Error ? error.message : 'Unknown error');
+            return null;
+        }
+    }
+
+    private async scrapeViaSubprocess(startUrl: string, maxDepth: number, maxPages: number): Promise<{
         success: boolean;
         content: string[];
         emails: string[];
@@ -83,5 +157,4 @@ export class WebsiteScraper {
             });
         });
     }
-
 }

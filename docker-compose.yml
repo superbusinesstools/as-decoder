@@ -1,0 +1,20 @@
+version: '3.8'
+
+services:
+  scraper-api:
+    build: 
+      context: ./scraper-api
+      dockerfile: Dockerfile
+    ports:
+      - "8080:8080"
+    environment:
+      - CRAWL_MAX_DEPTH=2
+      - CRAWL_MAX_PAGES=10
+      - PORT=8080
+    healthcheck:
+      test: ["CMD", "python", "-c", "import requests; requests.get('http://localhost:8080/health')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    restart: unless-stopped
