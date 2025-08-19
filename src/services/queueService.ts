@@ -54,13 +54,13 @@ export class QueueService {
     return stmt.all(companyId) as ProcessLog[];
   }
 
-  updateCompanyStatus(companyId: string, status: Company['status']): void {
+  updateCompanyStatus(companyId: string, status: Company['status'], errorMessage?: string): void {
     const stmt = db.prepare(`
       UPDATE companies 
-      SET status = ? 
+      SET status = ?, error_message = ?
       WHERE company_id = ?
     `);
-    stmt.run(status, companyId);
+    stmt.run(status, errorMessage || null, companyId);
   }
 
   addProcessLog(log: Omit<ProcessLog, 'id' | 'created_at'>): ProcessLog {
@@ -99,6 +99,20 @@ export class QueueService {
       ORDER BY created_at DESC
     `);
     return stmt.all() as Company[];
+  }
+
+  getCompaniesPaginated(offset: number, limit: number): { companies: Company[], total: number } {
+    const countStmt = db.prepare('SELECT COUNT(*) as total FROM companies');
+    const { total } = countStmt.get() as { total: number };
+    
+    const stmt = db.prepare(`
+      SELECT * FROM companies 
+      ORDER BY created_at DESC 
+      LIMIT ? OFFSET ?
+    `);
+    const companies = stmt.all(limit, offset) as Company[];
+    
+    return { companies, total };
   }
 
   restartCompany(companyId: string): boolean {

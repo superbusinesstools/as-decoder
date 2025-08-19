@@ -1,6 +1,6 @@
 {
 	"name": "as-decoder",
-	"version": "1.2.0",
+	"version": "1.4.0",
 	"description": "Web crawler queue system",
 	"main": "dist/server.js",
 	"scripts": {
@@ -36,6 +36,7 @@
 		"express": "^5.1.0",
 		"joi": "^18.0.0",
 		"jsdom": "^25.0.1",
+		"node-abort-controller": "^3.1.1",
 		"node-fetch": "^2.7.0",
 		"pm2": "^6.0.8",
 		"puppeteer": "^23.8.0",

@@ -139,6 +139,9 @@ npm run scrape https://example.com --verbose
 
 ## API Endpoints
 
+### Web Dashboard
+Access the status dashboard at: `https://as-decoder.afternoonltd.com/status.html`
+
 ### POST /api/queue
 Queue a company for processing.
 
@@ -190,8 +193,33 @@ Queue a company for processing.
 }
 ```
 
+**CURL Examples:**
+```bash
+# Queue a company for processing
+curl -X POST https://as-decoder.afternoonltd.com/api/queue \
+  -H "Content-Type: application/json" \
+  -d '{
+    "company_id": "test-company-123",
+    "website_url": "https://example.com"
+  }'
+
+# Queue with optional source_url
+curl -X POST https://as-decoder.afternoonltd.com/api/queue \
+  -H "Content-Type: application/json" \
+  -d '{
+    "company_id": "test-company-456",
+    "website_url": "https://example.com",
+    "source_url": "https://example.com/about"
+  }'
+```
+
 ### GET /api/queue/:company_id
 Get company status and process logs.
+
+**CURL Example:**
+```bash
+curl https://as-decoder.afternoonltd.com/api/queue/test-company-123
+```
 
 **Response (200):**
 ```json
@@ -224,14 +252,29 @@ Get company status and process logs.
 }
 ```
 
-### GET /health
+### GET /api/health
 Health check endpoint.
+
+**CURL Example:**
+```bash
+curl https://as-decoder.afternoonltd.com/api/health
+```
 
 ### GET /api/queue/status/recent
 Get recent processing status for all companies.
 
 **Query Parameters:**
-- `limit` (optional): Number of companies to return (default: 10, max: 50)
+- `limit` (optional): Number of companies to return (default: 20, max: 50)
+- `page` (optional): Page number for pagination (default: 1)
+
+**CURL Examples:**
+```bash
+# Get recent companies (default: 20 items, page 1)
+curl https://as-decoder.afternoonltd.com/api/queue/status/recent
+
+# Get page 2 with 30 items per page
+curl "https://as-decoder.afternoonltd.com/api/queue/status/recent?page=2&limit=30"
+```
 
 **Response (200):**
 ```json
@@ -247,9 +290,28 @@ Get recent processing status for all companies.
         "created_at": "2024-01-01T12:00:00.000Z"
       }
     ],
-    "count": 1
+    "count": 1,
+    "total": 10,
+    "page": 1,
+    "totalPages": 1
   }
 }
+```
+
+### GET /api/queue/status/failed
+Get all failed jobs.
+
+**CURL Example:**
+```bash
+curl https://as-decoder.afternoonltd.com/api/queue/status/failed
+```
+
+### POST /api/queue/:company_id/restart
+Restart a failed job from the last successful step.
+
+**CURL Example:**
+```bash
+curl -X POST https://as-decoder.afternoonltd.com/api/queue/test-company-123/restart
 ```
 
 ## Monitoring & Status

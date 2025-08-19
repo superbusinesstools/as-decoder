@@ -53,6 +53,13 @@ export function initializeDatabase() {
   } catch (error) {
     // Column already exists, ignore error
   }
+
+  // Add error_message column if it doesn't exist
+  try {
+    db.exec(`ALTER TABLE companies ADD COLUMN error_message TEXT;`);
+  } catch (error) {
+    // Column already exists, ignore error
+  }
 }
 
 export default db;

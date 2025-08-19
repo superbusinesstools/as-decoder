@@ -99,7 +99,8 @@ class ProcessorService {
     } catch (error) {
       console.error(`❌ Error processing company ${company.company_id}:`, error);
       
-      queueService.updateCompanyStatus(company.company_id, 'failed');
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      queueService.updateCompanyStatus(company.company_id, 'failed', errorMessage);
       
       // Map current_step to valid ProcessLog step
       const logStep = company.current_step === 'pending' ? 'crawling' : 
@@ -110,7 +111,7 @@ class ProcessorService {
         company_id: company.company_id,
         step: logStep,
         status: 'failed',
-        message: `Processing failed: ${error instanceof Error ? error.message : 'Unknown error'}`
+        message: `Processing failed: ${errorMessage}`
       });
     } finally {
       this.isProcessing = false;

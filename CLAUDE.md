@@ -10,6 +10,12 @@ AS-Decoder is a resumable queue management system that processes companies throu
 3. **AI Processing** → Claude AI analyzes content for structured data extraction (resumable)
 4. **Twenty CRM Update** → Updates company records and creates linked people (resumable)
 
+### Web Status Dashboard
+- **URL**: `http://localhost:20080/` (when running locally)
+- **Features**: Real-time status view with pagination, auto-refresh every 10 seconds
+- **Mobile-friendly**: Responsive design using Tailwind CSS CDN
+- Shows Company ID, Status (color-coded), Current Step, and Created date
+
 ## Essential Commands
 
 ```bash
@@ -25,6 +31,15 @@ npm run deploy           # One-command deployment (pull, install, build, restart
 npm run pm2:start        # Start with PM2
 npm run pm2:restart      # Restart server process
 npm run pm2:logs         # View server logs
+npm run reload           # Build and reload PM2 (pnpm run reload)
+
+# PM2 Management with pnpm
+pnpm pm2 start ecosystem.config.js  # Start the application
+pnpm pm2 reload ecosystem.config.js # Reload after changes
+pnpm pm2 restart as-decoder         # Restart the process
+pnpm pm2 stop as-decoder            # Stop the process
+pnpm pm2 list                       # List all PM2 processes
+pnpm pm2 logs as-decoder            # View logs
 
 # Monitoring & Management
 npm run status           # Check processing status and failed jobs
@@ -184,6 +199,7 @@ API key has invalid characters. Fix applied in `crmApi.ts` sanitizes headers.
 2. Mark failed and restart: `npm run restart-jobs`
 
 ---
-*Last Updated: August 18, 2025*
+*Last Updated: August 19, 2025*
 *Integration Status: 95% Complete (Notes API pending)*
 - Always bump the version in package.json when committing
+- Version: 1.3.0 - Added web status dashboard

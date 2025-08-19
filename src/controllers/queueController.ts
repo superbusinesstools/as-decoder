@@ -134,14 +134,20 @@ export class QueueController {
 
   async getRecentStatus(req: Request, res: Response): Promise<void> {
     try {
-      const limit = parseInt(req.query.limit as string) || 10;
-      const companies = queueService.getRecentCompanies(Math.min(limit, 50)); // Cap at 50
+      const page = parseInt(req.query.page as string) || 1;
+      const limit = parseInt(req.query.limit as string) || 20;
+      const offset = (page - 1) * limit;
+      
+      const { companies, total } = queueService.getCompaniesPaginated(offset, Math.min(limit, 50));
 
       res.json({
         success: true,
         data: {
           companies,
-          count: companies.length
+          count: companies.length,
+          total,
+          page,
+          totalPages: Math.ceil(total / limit)
         }
       });
     } catch (error) {

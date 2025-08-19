@@ -45,8 +45,18 @@ class TwentyApiService {
     }
   }
 
+  private isValidUUID(uuid: string): boolean {
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    return uuidRegex.test(uuid);
+  }
+
   async updateCompany(companyId: string, aiResult: any): Promise<void> {
     console.log(`🏢 Updating company ${companyId} with AI result`);
+    
+    // Validate UUID format
+    if (!this.isValidUUID(companyId)) {
+      throw new Error(`Invalid company ID format: "${companyId}" is not a valid UUID. Twenty CRM requires company IDs to be in UUID format (e.g., 123e4567-e89b-12d3-a456-426614174000)`);
+    }
     
     if (!this.apiKey) {
       throw new Error('TWENTY_API_KEY is not configured');
@@ -124,6 +134,11 @@ class TwentyApiService {
     if (!people || people.length === 0) {
       console.log(`ℹ️ No people to create for company ${companyId}`);
       return;
+    }
+    
+    // Validate UUID format
+    if (!this.isValidUUID(companyId)) {
+      throw new Error(`Invalid company ID format: "${companyId}" is not a valid UUID. Twenty CRM requires company IDs to be in UUID format`);
     }
 
     console.log(`👥 Creating ${people.length} people for company ${companyId}`);

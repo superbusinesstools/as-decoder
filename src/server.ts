@@ -1,8 +1,10 @@
 import express, { Express } from 'express';
 import dotenv from 'dotenv';
+import path from 'path';
 import { initializeDatabase } from './db';
 import queueRoutes from './routes/queue';
 import processor from './services/processor';
+import { authMiddleware, authPageMiddleware } from './middleware/auth';
 
 dotenv.config();
 
@@ -12,13 +14,34 @@ const PORT = process.env.PORT || 20080;
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
+// Serve static files from public directory (except status.html)
+const publicPath = path.join(__dirname, '..', 'public');
+console.log('Serving static files from:', publicPath);
+
+// Protect status.html with auth
+app.get('/status.html', authPageMiddleware, (_req, res) => {
+  res.sendFile(path.join(publicPath, 'status.html'));
+});
+
+// Serve other static files without auth
+app.use(express.static(publicPath, {
+  index: false // Don't serve index.html automatically
+}));
+
+// Redirect root to status.html
+app.get('/', (_req, res) => {
+  res.redirect('/status.html');
+});
+
 initializeDatabase();
 
-app.use('/api', queueRoutes);
-
-app.get('/health', (_req, res) => {
+// Health endpoint doesn't need auth
+app.get('/api/health', (_req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
 });
+
+// Apply auth middleware to all /api routes except health
+app.use('/api', authMiddleware, queueRoutes);
 
 if (process.env.NODE_ENV !== 'test') {
   const server = app.listen(PORT, () => {

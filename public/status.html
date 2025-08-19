@@ -1,0 +1,398 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AS-Decoder Status Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100">
+    <div class="container mx-auto px-4 py-8 max-w-7xl">
+        <div class="flex justify-between items-center mb-6">
+            <h1 class="text-3xl font-bold text-gray-800">AS-Decoder Status Dashboard</h1>
+            <button onclick="logout()" class="px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600 text-sm">
+                Logout
+            </button>
+        </div>
+        
+        <!-- Summary Cards -->
+        <div class="grid grid-cols-2 md:grid-cols-5 gap-4 mb-6">
+            <div class="bg-white rounded-lg shadow p-4">
+                <div class="text-2xl font-bold text-gray-800" id="totalCount">0</div>
+                <div class="text-sm text-gray-600">Total</div>
+            </div>
+            <div class="bg-yellow-50 rounded-lg shadow p-4 border border-yellow-200">
+                <div class="text-2xl font-bold text-yellow-600" id="pendingCount">0</div>
+                <div class="text-sm text-yellow-800">Pending</div>
+            </div>
+            <div class="bg-blue-50 rounded-lg shadow p-4 border border-blue-200">
+                <div class="text-2xl font-bold text-blue-600" id="processingCount">0</div>
+                <div class="text-sm text-blue-800">Processing</div>
+            </div>
+            <div class="bg-green-50 rounded-lg shadow p-4 border border-green-200">
+                <div class="text-2xl font-bold text-green-600" id="completedCount">0</div>
+                <div class="text-sm text-green-800">Completed</div>
+            </div>
+            <div class="bg-red-50 rounded-lg shadow p-4 border border-red-200">
+                <div class="text-2xl font-bold text-red-600" id="failedCount">0</div>
+                <div class="text-sm text-red-800">Failed</div>
+            </div>
+        </div>
+
+        <!-- Filter Controls -->
+        <div class="bg-white rounded-lg shadow p-4 mb-4">
+            <div class="flex flex-col md:flex-row gap-4">
+                <div class="flex-1">
+                    <input 
+                        type="text" 
+                        id="searchInput" 
+                        placeholder="Search by Company ID..."
+                        class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        onkeyup="filterTable()"
+                    >
+                </div>
+                <div>
+                    <select 
+                        id="statusFilter" 
+                        onchange="filterTable()"
+                        class="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    >
+                        <option value="">All Status</option>
+                        <option value="pending">Pending</option>
+                        <option value="processing">Processing</option>
+                        <option value="completed">Completed</option>
+                        <option value="failed">Failed</option>
+                    </select>
+                </div>
+                <button 
+                    onclick="restartAllFailed()" 
+                    class="px-4 py-2 bg-orange-500 text-white rounded hover:bg-orange-600"
+                >
+                    Restart All Failed
+                </button>
+                <button 
+                    onclick="loadData()" 
+                    class="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
+                >
+                    Refresh
+                </button>
+            </div>
+        </div>
+        
+        <!-- Table -->
+        <div class="bg-white rounded-lg shadow overflow-hidden">
+            <div class="overflow-x-auto">
+                <table class="min-w-full divide-y divide-gray-200">
+                    <thead class="bg-gray-50">
+                        <tr>
+                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Company ID</th>
+                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Website</th>
+                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
+                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Step</th>
+                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase hidden md:table-cell">Created</th>
+                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase hidden md:table-cell">Updated</th>
+                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="companiesTable" class="bg-white divide-y divide-gray-200">
+                        <tr>
+                            <td colspan="7" class="px-4 py-3 text-center text-gray-500">Loading...</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Mobile Cards View (shown on small screens) -->
+        <div id="mobileCards" class="md:hidden space-y-4 mt-4">
+            <!-- Cards will be inserted here -->
+        </div>
+
+        <!-- Pagination -->
+        <div class="mt-4 flex flex-col sm:flex-row justify-between items-center gap-4">
+            <div class="text-sm text-gray-700">
+                Page <span id="currentPage">1</span> of <span id="totalPages">1</span>
+                <span class="ml-2">(<span id="totalRecords">0</span> records)</span>
+            </div>
+            <div class="flex space-x-2">
+                <button id="prevBtn" onclick="changePage(-1)" class="px-4 py-2 bg-gray-300 text-gray-700 rounded hover:bg-gray-400 disabled:opacity-50 disabled:cursor-not-allowed">Previous</button>
+                <button id="nextBtn" onclick="changePage(1)" class="px-4 py-2 bg-gray-300 text-gray-700 rounded hover:bg-gray-400 disabled:opacity-50 disabled:cursor-not-allowed">Next</button>
+            </div>
+        </div>
+
+        <!-- Auto-refresh indicator -->
+        <div class="mt-4 text-center text-sm text-gray-500">
+            Auto-refreshing every 10 seconds | Last updated: <span id="lastUpdate">Never</span>
+        </div>
+    </div>
+
+    <script>
+        let currentPage = 1;
+        let totalPages = 1;
+        let allCompanies = [];
+        let filteredCompanies = [];
+        const authToken = new URLSearchParams(window.location.search).get('token') || localStorage.getItem('authToken');
+        
+        if (authToken) {
+            localStorage.setItem('authToken', authToken);
+        }
+
+        function logout() {
+            localStorage.removeItem('authToken');
+            window.location.href = '/status.html';
+        }
+
+        function formatDate(dateStr) {
+            const date = new Date(dateStr);
+            return date.toLocaleDateString() + ' ' + date.toLocaleTimeString();
+        }
+
+        function getStatusColor(status) {
+            switch(status) {
+                case 'pending': return 'text-yellow-600 bg-yellow-100';
+                case 'processing': return 'text-blue-600 bg-blue-100';
+                case 'completed': return 'text-green-600 bg-green-100';
+                case 'failed': return 'text-red-600 bg-red-100';
+                default: return 'text-gray-600 bg-gray-100';
+            }
+        }
+
+        function getStepIcon(step) {
+            switch(step) {
+                case 'pending': return '⏸️';
+                case 'crawling': return '🌐';
+                case 'ai_processing': return '🤖';
+                case 'crm_sending': return '📤';
+                case 'completed': return '✅';
+                default: return '';
+            }
+        }
+
+        function truncateUrl(url, maxLength = 30) {
+            if (!url) return 'N/A';
+            if (url.length <= maxLength) return url;
+            return url.substring(0, maxLength) + '...';
+        }
+
+        async function restartJob(companyId) {
+            if (!confirm(`Restart job for ${companyId}?`)) return;
+            
+            try {
+                const headers = {};
+                if (authToken) {
+                    headers['X-Auth-Token'] = authToken;
+                }
+                
+                const response = await fetch(`/api/queue/${companyId}/restart`, {
+                    method: 'POST',
+                    headers
+                });
+                
+                const data = await response.json();
+                if (data.success) {
+                    alert('Job restarted successfully');
+                    loadData();
+                } else {
+                    alert('Failed to restart job: ' + (data.error || 'Unknown error'));
+                }
+            } catch (error) {
+                alert('Error restarting job: ' + error.message);
+            }
+        }
+
+        async function restartAllFailed() {
+            if (!confirm('Restart all failed jobs?')) return;
+            
+            const failedCompanies = allCompanies.filter(c => c.status === 'failed');
+            if (failedCompanies.length === 0) {
+                alert('No failed jobs to restart');
+                return;
+            }
+            
+            let restarted = 0;
+            for (const company of failedCompanies) {
+                try {
+                    const headers = {};
+                    if (authToken) {
+                        headers['X-Auth-Token'] = authToken;
+                    }
+                    
+                    const response = await fetch(`/api/queue/${company.company_id}/restart`, {
+                        method: 'POST',
+                        headers
+                    });
+                    
+                    if (response.ok) {
+                        restarted++;
+                    }
+                } catch (error) {
+                    console.error(`Failed to restart ${company.company_id}:`, error);
+                }
+            }
+            
+            alert(`Restarted ${restarted} of ${failedCompanies.length} failed jobs`);
+            loadData();
+        }
+
+        function filterTable() {
+            const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+            const statusFilter = document.getElementById('statusFilter').value;
+            
+            filteredCompanies = allCompanies.filter(company => {
+                const matchesSearch = company.company_id.toLowerCase().includes(searchTerm);
+                const matchesStatus = !statusFilter || company.status === statusFilter;
+                return matchesSearch && matchesStatus;
+            });
+            
+            renderTable();
+        }
+
+        function updateSummary() {
+            const counts = {
+                total: allCompanies.length,
+                pending: allCompanies.filter(c => c.status === 'pending').length,
+                processing: allCompanies.filter(c => c.status === 'processing').length,
+                completed: allCompanies.filter(c => c.status === 'completed').length,
+                failed: allCompanies.filter(c => c.status === 'failed').length
+            };
+            
+            document.getElementById('totalCount').textContent = counts.total;
+            document.getElementById('pendingCount').textContent = counts.pending;
+            document.getElementById('processingCount').textContent = counts.processing;
+            document.getElementById('completedCount').textContent = counts.completed;
+            document.getElementById('failedCount').textContent = counts.failed;
+        }
+
+        function renderTable() {
+            const tbody = document.getElementById('companiesTable');
+            const mobileCards = document.getElementById('mobileCards');
+            
+            if (filteredCompanies.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="7" class="px-4 py-3 text-center text-gray-500">No companies found</td></tr>';
+                mobileCards.innerHTML = '<div class="text-center text-gray-500 p-4">No companies found</div>';
+                return;
+            }
+            
+            // Desktop table
+            tbody.innerHTML = filteredCompanies.map(company => `
+                <tr class="${company.status === 'failed' ? 'bg-red-50' : ''}">
+                    <td class="px-4 py-3 text-sm font-medium text-gray-900 break-all">
+                        ${company.company_id}
+                    </td>
+                    <td class="px-4 py-3 text-sm text-gray-500">
+                        <a href="${company.website_url}" target="_blank" class="text-blue-500 hover:underline" title="${company.website_url}">
+                            ${truncateUrl(company.website_url)}
+                        </a>
+                    </td>
+                    <td class="px-4 py-3 text-sm">
+                        <span class="px-2 py-1 rounded-full text-xs font-semibold ${getStatusColor(company.status)}">
+                            ${company.status}
+                        </span>
+                    </td>
+                    <td class="px-4 py-3 text-sm text-gray-500">
+                        ${getStepIcon(company.current_step)} ${company.current_step}
+                    </td>
+                    <td class="px-4 py-3 text-sm text-gray-500 hidden md:table-cell">
+                        ${formatDate(company.created_at)}
+                    </td>
+                    <td class="px-4 py-3 text-sm text-gray-500 hidden md:table-cell">
+                        ${formatDate(company.updated_at)}
+                    </td>
+                    <td class="px-4 py-3 text-sm">
+                        ${company.status === 'failed' ? 
+                            `<button onclick="restartJob('${company.company_id}')" class="px-2 py-1 bg-orange-500 text-white rounded text-xs hover:bg-orange-600">
+                                Restart
+                            </button>` : 
+                            '<span class="text-gray-400">-</span>'}
+                    </td>
+                </tr>
+            `).join('');
+            
+            // Mobile cards
+            mobileCards.innerHTML = filteredCompanies.map(company => `
+                <div class="bg-white rounded-lg shadow p-4 ${company.status === 'failed' ? 'border-l-4 border-red-500' : ''}">
+                    <div class="font-semibold text-gray-800 mb-2">${company.company_id}</div>
+                    <div class="text-sm text-gray-600 mb-2">
+                        <a href="${company.website_url}" target="_blank" class="text-blue-500 hover:underline">
+                            ${truncateUrl(company.website_url, 40)}
+                        </a>
+                    </div>
+                    <div class="flex justify-between items-center mb-2">
+                        <span class="px-2 py-1 rounded-full text-xs font-semibold ${getStatusColor(company.status)}">
+                            ${company.status}
+                        </span>
+                        <span class="text-sm text-gray-500">
+                            ${getStepIcon(company.current_step)} ${company.current_step}
+                        </span>
+                    </div>
+                    <div class="text-xs text-gray-500 mb-2">
+                        Created: ${formatDate(company.created_at)}
+                    </div>
+                    ${company.status === 'failed' ? 
+                        `<button onclick="restartJob('${company.company_id}')" class="w-full px-3 py-2 bg-orange-500 text-white rounded hover:bg-orange-600">
+                            Restart Job
+                        </button>` : ''}
+                </div>
+            `).join('');
+            
+            document.getElementById('totalRecords').textContent = filteredCompanies.length;
+        }
+
+        async function loadData() {
+            try {
+                const headers = {};
+                if (authToken) {
+                    headers['X-Auth-Token'] = authToken;
+                }
+                
+                const response = await fetch(`/api/queue/status/recent?page=${currentPage}&limit=50`, {
+                    headers
+                });
+                
+                if (response.status === 401) {
+                    window.location.href = '/status.html';
+                    return;
+                }
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    allCompanies = data.data.companies;
+                    filteredCompanies = allCompanies;
+                    
+                    updateSummary();
+                    filterTable();
+                    
+                    currentPage = data.data.page;
+                    totalPages = data.data.totalPages;
+                    
+                    document.getElementById('currentPage').textContent = currentPage;
+                    document.getElementById('totalPages').textContent = totalPages;
+                    document.getElementById('lastUpdate').textContent = new Date().toLocaleTimeString();
+                    
+                    document.getElementById('prevBtn').disabled = currentPage <= 1;
+                    document.getElementById('nextBtn').disabled = currentPage >= totalPages;
+                }
+            } catch (error) {
+                console.error('Error loading data:', error);
+                document.getElementById('companiesTable').innerHTML = 
+                    '<tr><td colspan="7" class="px-4 py-3 text-center text-red-500">Error loading data</td></tr>';
+            }
+        }
+
+        function changePage(delta) {
+            const newPage = currentPage + delta;
+            if (newPage >= 1 && newPage <= totalPages) {
+                currentPage = newPage;
+                loadData();
+            }
+        }
+
+        // Load data initially
+        loadData();
+        
+        // Auto-refresh every 10 seconds
+        setInterval(loadData, 10000);
+    </script>
+</body>
+</html>
