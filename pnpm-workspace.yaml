@@ -2,3 +2,6 @@ ignoredBuiltDependencies:
   - better-sqlite3
   - puppeteer
   - unrs-resolver
+
+onlyBuiltDependencies:
+  - better-sqlite3

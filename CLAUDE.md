@@ -1,176 +1,189 @@
-# AS-Decoder Twenty CRM Integration - Implementation Notes
+# CLAUDE.md
 
-## Overview
-This document captures the technical implementation details, challenges, and solutions for the Twenty CRM integration that was completed on August 17, 2025.
+This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
-## ✅ Implementation Status: FULLY WORKING
+## Project Overview
 
-The integration successfully processes companies from webhook to Twenty CRM update with the following flow:
-1. **Webhook** → Queue company for processing
-2. **Website Crawling** → Extract content using Python/Scrapy  
-3. **AI Processing** → Claude AI analyzes content (with mock fallback)
-4. **Twenty CRM Updates** → Update company data and create people records
+AS-Decoder is a resumable queue management system that processes companies through a 4-step pipeline:
+1. **Webhook Reception** → Company queued via `/api/queue` endpoint
+2. **Website Crawling** → Scraper API extracts content (resumable)
+3. **AI Processing** → Claude AI analyzes content for structured data extraction (resumable)
+4. **Twenty CRM Update** → Updates company records and creates linked people (resumable)
 
-## Key Implementation Details
+## Essential Commands
 
-### Environment Variables Required
 ```bash
-# Twenty CRM API Configuration
+# Development
+npm run dev              # Run TypeScript directly with ts-node
+npm run build            # Compile TypeScript and copy prompt.txt to dist
+npm test                 # Run all tests
+npm test -- --watch     # Run tests in watch mode
+npm test -- path/to/test.test.ts  # Run specific test file
+
+# Production Deployment
+npm run deploy           # One-command deployment (pull, install, build, restart)
+npm run pm2:start        # Start with PM2
+npm run pm2:restart      # Restart server process
+npm run pm2:logs         # View server logs
+
+# Monitoring & Management
+npm run status           # Check processing status and failed jobs
+npm run restart-jobs     # Restart all failed jobs
+npm run restart-jobs COMPANY_ID  # Restart specific failed job
+
+# Database & Testing
+npm run reset            # Reset database (WARNING: deletes all data)
+npm run seed             # Seed test data
+
+# Lint and Type Checking
+npx tsc --noEmit        # TypeScript type checking
+```
+
+## Architecture & Processing Flow
+
+### Core Services Architecture
+
+```
+src/services/
+├── processor.ts         # Main orchestrator - manages 4-step workflow
+├── queueService.ts      # Queue management, status tracking, restart logic
+├── websiteScraper.ts    # Scraper API client
+├── ai/
+│   ├── claudeAI.ts     # Claude AI integration with mock fallback
+│   └── prompt.txt      # Editable AI prompt (copied to dist on build)
+├── twenty/
+│   └── twentyApi.ts    # Twenty CRM API client
+├── crmService.ts       # CRM update orchestrator
+└── crmApi.ts           # CRM data fetching service
+```
+
+### Database Schema
+
+**companies table**: Stores company state and progress
+- `company_id` (unique) - External company identifier
+- `status` - pending/processing/completed/failed
+- `current_step` - pending/crawling/ai_processing/crm_sending/completed
+- `raw_data` - Scraped website content (allows crawling skip on restart)
+- `processed_data` - AI analysis results (allows AI skip on restart)
+
+**process_logs table**: Detailed step tracking for debugging
+- Links to company via `company_id`
+- Records each step's start/completion/failure
+
+### Resumable Processing Design
+
+The system intelligently resumes from the last successful step:
+- **Crawling failed** → Restarts from beginning
+- **AI processing failed** → Skips crawling, restarts AI (raw_data preserved)
+- **CRM sending failed** → Skips crawling & AI, restarts CRM (all data preserved)
+
+Implementation in `queueService.ts:restartCompany()`:
+```typescript
+// Determine restart point based on existing data
+if (company.raw_data) newStep = 'ai_processing';
+if (company.processed_data) newStep = 'crm_sending';
+```
+
+### Scraper API Integration
+
+The system uses a dedicated scraper API service for web scraping:
+- API Endpoint: `https://as-scraper.afternoonltd.com`
+- Supports configurable depth and page limits
+- Returns structured content, emails, and links
+- Handles multi-threaded crawling with 6 concurrent threads
+
+### Twenty CRM Integration Status
+
+**Working Components** ✅:
+- Company field updates (all custom fields)
+- People creation with company linking
+- Social link mapping (linkedinLink, xLink, etc.)
+- Error recovery and partial success handling
+
+**Known Issues** ⚠️:
+- Notes creation disabled (API field metadata issue)
+- Field name: Must use `linkedinLink` not `linkedIn` for people
+
+## Critical Implementation Details
+
+### Environment Variables
+```bash
+# Required for production
 TWENTY_API_URL=https://20.afternoonltd.com
-TWENTY_API_KEY=your_twenty_api_key_here
+TWENTY_API_KEY=your_key_here
+ANTHROPIC_API_KEY=your_key_here  # Optional - has mock fallback
 
-# AI Configuration (optional - has fallback)
-ANTHROPIC_API_KEY=your_anthropic_api_key_here
-CLAUDE_MODEL=claude-3-haiku-20240307
+# Crawling limits
+CRAWL_MAX_DEPTH=3   # Link following depth
+CRAWL_MAX_PAGES=20  # Total page limit
+
+# Scraper API
+SCRAPER_API_URL=https://as-scraper.afternoonltd.com
 ```
 
-### New AI Data Format
-The AI processing was updated to extract comprehensive structured data:
+### Build Process Requirements
+The build script must copy `prompt.txt` to dist:
+```json
+"build": "tsc && cp src/services/ai/prompt.txt dist/services/ai/"
+```
 
-- **Company Data**: Basic info, social links, contact details, locations
-- **People**: Contacts with emails, titles, social profiles
-- **Services**: Business overview, offerings, target market, tech stack
-- **Quality Signals**: Certifications, awards, notable clients
-- **Growth Signals**: Revenue growth, expansion, funding rounds
-- **Industry Metrics**: Sector-specific KPIs and measurements
-
-### Twenty API Integration
-
-#### Working Components:
-1. **Company Updates** ✅
-   - All company fields updated including new arrays (qualitySignals, growthSignals, industryMetrics, locations)
-   - Social links properly mapped (linkedinLink, xLink, facebook, instagram)
-   - Business data fields (overview, offerings, targetMarket, techStack, competitiveIntel, recentActivity)
-
-2. **People Creation** ✅  
-   - Creates individual people records linked to companies
-   - Handles partial data gracefully (continues if one person fails)
-   - Proper field mapping (linkedinLink not linkedIn)
-
-3. **Error Handling** ✅
-   - Comprehensive logging and error recovery
-   - Detailed API error messages
-   - Graceful degradation for failed sub-steps
-
-#### Known Issues:
-1. **Notes Creation** ⚠️
-   - Temporarily disabled due to Twenty API field metadata requirements
-   - Error: "Field metadata for field 'content' is missing in object metadata note"
-   - Need to investigate correct field names for notes (tried: body, content)
-
-## Technical Challenges Solved
-
-### 1. Environment Variable Consistency
-**Problem**: Different services used different env var names
-**Solution**: Standardized on `TWENTY_API_URL` across all services
-
-### 2. AI Response Format Migration  
-**Problem**: Old format vs new comprehensive format mismatch
-**Solution**: Updated interface and mock data to match new structure
-
-### 3. Python Scraper Virtual Environment
-**Problem**: Scrapy command not found in subprocess
-**Solution**: Modified `scrape.py` to use full path to venv scrapy binary
-
-### 4. Twenty API Field Mapping
-**Problem**: API field names didn't match our data structure
-**Solution**: Fixed linkedIn → linkedinLink mapping for people records
-
-### 5. API Response Handling
-**Problem**: Inconsistent response structures from Twenty API
-**Solution**: Added robust response parsing for different API patterns
-
-## Files Modified/Created
-
-### New Files:
-- `src/types/twenty.types.ts` - TypeScript interfaces for Twenty API
-- `src/services/twenty/twentyApi.ts` - Main Twenty API service
-- `test-integration.js` - End-to-end integration test script
-
-### Modified Files:
-- `src/services/crmService.ts` - Updated to use actual API calls
-- `src/services/ai/claudeAI.ts` - New AI response format
-- `src/services/ai/prompt.txt` - Enhanced prompt for comprehensive extraction
-- `src/services/crmApi.ts` - Environment variable consistency
-- `scripts/scraper/scrape.py` - Fixed virtual environment path
-- `.env.example` - Added Twenty API configuration
-
-### Key Code Changes:
-
-#### Twenty API Service Structure:
+### API Encoding Fix
+CRM API requires sanitized headers to prevent encoding errors:
 ```typescript
-class TwentyApiService {
-  async updateCompany(companyId: string, aiResult: any): Promise<void>
-  async createPeople(companyId: string, people: any[]): Promise<void>  
-  async createNoteWithTarget(companyId: string, noteContent: any): Promise<void>
-}
+const authHeader = `Bearer ${apiKey}`.replace(/[\x00-\x1F\x7F-\xFF]/g, '');
 ```
 
-#### CRM Service Integration:
-```typescript
-// Updated from placeholder to actual API calls
-await twentyApi.createPeople(companyId, people);
-await twentyApi.updateCompany(companyId, aiResult);
-await twentyApi.createNoteWithTarget(companyId, aiResult);
+### Queue Processing
+- Processes every 5 seconds via `setInterval`
+- Single-threaded to prevent race conditions
+- PM2 manages process lifecycle with auto-restart
+
+### Error Handling Patterns
+- Each step logs to `process_logs` table
+- Failed steps update company status to 'failed'
+- Restart mechanism checks existing data to skip completed work
+- Mock AI fallback when Claude API unavailable
+
+## Testing Strategy
+
+### Integration Testing
+```bash
+node test-integration.js  # Full pipeline test
+```
+Tests: Server health → Twenty API auth → Webhook → Processing → CRM verification
+
+### Unit Testing
+- Database operations: `tests/db.test.ts`
+- Queue management: `tests/queueService.test.ts`
+- API endpoints: `tests/api.test.ts`
+
+## Deployment Checklist
+
+1. **Pre-deployment**: Ensure `.env` has required API keys
+2. **Deploy**: Run `npm run deploy` (handles everything)
+3. **Verify**: Check `npm run status` for failed jobs
+4. **Monitor**: Use `npm run pm2:logs` for real-time logs
+5. **Recovery**: Use `npm run restart-jobs` for failed jobs
+
+## Common Troubleshooting
+
+### "prompt.txt not found" Error
+Run `npm run build` - the build script copies prompt.txt to dist
+
+### "Scraper API Connection" Error
+Ensure the SCRAPER_API_URL is set correctly in `.env`:
+```bash
+SCRAPER_API_URL=https://as-scraper.afternoonltd.com
 ```
 
-## Testing
+### CRM API "ByteString" Error
+API key has invalid characters. Fix applied in `crmApi.ts` sanitizes headers.
 
-### Integration Test Script
-`test-integration.js` provides comprehensive end-to-end testing:
-1. Server connectivity check
-2. Twenty API authentication test
-3. Webhook endpoint validation
-4. Complete processing pipeline monitoring
-5. CRM data verification
-
-### Test Results
-All major components working:
-- ✅ Webhook processing
-- ✅ Website crawling (4 pages scraped from afternoonltd.com)
-- ✅ AI processing (mock data fallback working)
-- ✅ Company data updated in Twenty CRM
-- ✅ People records created and linked
-- ⚠️ Notes temporarily disabled
-
-## Next Steps
-
-### Immediate:
-1. **Fix Notes Creation**: Research correct field names for Twenty notes API
-2. **Claude AI Key**: Add valid Anthropic API key for production AI processing
-
-### Future Enhancements:
-1. **Retry Logic**: Add exponential backoff for failed API calls
-2. **Batch Operations**: Optimize for bulk data processing
-3. **Webhook Security**: Add signature validation for webhook requests
-4. **Field Mapping**: Create configurable field mapping for different CRM setups
-
-## Production Deployment
-
-### Prerequisites:
-1. Valid Twenty API key in environment
-2. Python virtual environment with scrapy installed
-3. SQLite database permissions
-4. Claude API key (optional with mock fallback)
-
-### Monitoring:
-- Check server logs for processing errors
-- Monitor Twenty CRM for data quality
-- Use integration test script for health checks
-
-### Performance:
-- Processing time: ~30-45 seconds per company (including crawling and AI)
-- Queue processing: Every 5 seconds
-- Resumable: Failed steps can be retried without re-work
-
-## Contact & Support
-
-For technical questions about this integration:
-- Review server logs for detailed error messages
-- Run `node test-integration.js` for health checks
-- Check Twenty API documentation for field requirements
-- Monitor database for processing status and logs
+### Jobs Stuck in Processing
+1. Check logs: `npm run pm2:logs`
+2. Mark failed and restart: `npm run restart-jobs`
 
 ---
-*Implementation completed: August 17, 2025*  
-*Status: Production Ready (95% complete - notes creation pending)*
+*Last Updated: August 18, 2025*
+*Integration Status: 95% Complete (Notes API pending)*
+- Always bump the version in package.json when committing

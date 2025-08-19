@@ -1,6 +1,6 @@
 {
 	"name": "as-decoder",
-	"version": "1.1.0",
+	"version": "1.2.0",
 	"description": "Web crawler queue system",
 	"main": "dist/server.js",
 	"scripts": {
@@ -14,7 +14,6 @@
 		"seed": "ts-node scripts/seed-queue.ts",
 		"seed:bash": "./scripts/seed-queue.sh",
 		"reset": "./scripts/reset-db.sh",
-		"scrape": "./scripts/scraper/run_scraper.sh",
 		"status": "./scripts/status.sh",
 		"deploy": "./scripts/deploy.sh",
 		"pm2:start": "pm2 start ecosystem.config.js",
@@ -22,6 +21,7 @@
 		"pm2:restart": "pm2 restart as-decoder",
 		"pm2:reload": "pm2 reload as-decoder",
 		"pm2:stop": "pm2 stop as-decoder",
+		"reload": "npm run build && pm2 reload ecosystem.config.js",
 		"pm2:logs": "pm2 logs as-decoder --lines 200",
 		"restart-jobs": "./scripts/restart-failed.sh"
 	},
@@ -37,6 +37,7 @@
 		"joi": "^18.0.0",
 		"jsdom": "^25.0.1",
 		"node-fetch": "^2.7.0",
+		"pm2": "^6.0.8",
 		"puppeteer": "^23.8.0",
 		"typescript": "^5.9.2"
 	},

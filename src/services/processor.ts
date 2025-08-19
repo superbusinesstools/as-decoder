@@ -252,7 +252,7 @@ class ProcessorService {
   private async simulateWebsiteCrawl(websiteUrl: string): Promise<string> {
     const maxDepth = parseInt(process.env.CRAWL_MAX_DEPTH || '2');
     const maxPages = parseInt(process.env.CRAWL_MAX_PAGES || '10');
-    const scraper = new WebsiteScraper({ maxDepth });
+    const scraper = new WebsiteScraper();
     
     try {
       const result = await scraper.scrapeWebsite(websiteUrl, maxDepth, maxPages);
