@@ -121,9 +121,9 @@
             </div>
         </div>
 
-        <!-- Auto-refresh indicator -->
+        <!-- Manual refresh indicator -->
         <div class="mt-4 text-center text-sm text-gray-500">
-            Auto-refreshing every 10 seconds | Last updated: <span id="lastUpdate">Never</span>
+            Use the Refresh button to update data | Last updated: <span id="lastUpdate">Never</span>
         </div>
     </div>
 
@@ -420,8 +420,8 @@
         // Load data initially
         loadData();
         
-        // Auto-refresh every 10 seconds
-        setInterval(loadData, 10000);
+        // Auto-refresh removed to prevent breaking expanded tabs
+        // Users can manually refresh using the Refresh button
         
         // Store expanded states
         const expandedStates = new Set();
@@ -554,8 +554,8 @@
                 <div class="space-y-4">
                     <div class="bg-gray-100 p-3 rounded">
                         <div class="font-semibold mb-2">Scraped Data</div>
-                        <div class="text-xs bg-white p-2 rounded border max-h-32 overflow-y-auto font-mono">
-                            ${data.raw_data ? JSON.stringify(data.raw_data, null, 2) : 'No data available'}
+                        <div class="text-xs bg-white p-2 rounded border max-h-32 overflow-y-auto font-mono whitespace-pre-line">
+                            ${data.raw_data ? (typeof data.raw_data === 'string' ? data.raw_data : JSON.stringify(data.raw_data, null, 2)) : 'No data available'}
                         </div>
                     </div>
                     
@@ -607,10 +607,21 @@
         function renderTabContent(data, tabName) {
             const copyId = `copy-${tabName}-${Date.now()}`;
             let content = 'No data available';
+            let isScrapedData = false;
             
             switch(tabName) {
                 case 'scraped':
-                    content = data.raw_data ? JSON.stringify(data.raw_data, null, 2) : 'No scraped data available';
+                    isScrapedData = true;
+                    if (data.raw_data) {
+                        // Format scraped data to be readable
+                        if (typeof data.raw_data === 'string') {
+                            content = data.raw_data;
+                        } else {
+                            content = JSON.stringify(data.raw_data, null, 2);
+                        }
+                    } else {
+                        content = 'No scraped data available';
+                    }
                     break;
                 case 'ai':
                     content = data.processed_data ? JSON.stringify(data.processed_data, null, 2) : 'No AI analysis available';
@@ -628,7 +639,7 @@
                     <button onclick="copyToClipboard('${copyId}')" class="absolute top-2 right-2 px-2 py-1 bg-gray-200 hover:bg-gray-300 rounded text-xs">
                         Copy
                     </button>
-                    <pre id="${copyId}" class="bg-gray-100 p-4 rounded border text-xs font-mono overflow-x-auto max-h-96 overflow-y-auto whitespace-pre-wrap">${content}</pre>
+                    <pre id="${copyId}" class="bg-gray-100 p-4 rounded border text-xs font-mono overflow-x-auto max-h-96 overflow-y-auto ${isScrapedData ? 'whitespace-pre-line' : 'whitespace-pre-wrap'}">${content}</pre>
                 </div>
             `;
         }
