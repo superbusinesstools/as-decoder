@@ -554,6 +554,11 @@
                         <button class="px-4 py-2 bg-gray-200 text-gray-700 rounded-t detail-tab ml-1" onclick="showTab(${index}, 'crm-response')">
                             CRM Response
                         </button>
+                        ${data.error_message ? `
+                        <button class="px-4 py-2 bg-red-200 text-red-700 rounded-t detail-tab ml-1" onclick="showTab(${index}, 'error')">
+                            ⚠️ Error Details
+                        </button>
+                        ` : ''}
                     </div>
                     
                     <div id="tab-content-${index}">
@@ -602,6 +607,15 @@
                             <div class="font-semibold mb-2">CRM Response</div>
                             <div class="text-xs bg-white p-2 rounded border max-h-32 overflow-y-auto font-mono">
                                 ${JSON.stringify(data.crm_response, null, 2)}
+                            </div>
+                        </div>
+                    ` : ''}
+                    
+                    ${data.error_message ? `
+                        <div class="bg-red-100 p-3 rounded border-l-4 border-red-500">
+                            <div class="font-semibold mb-2 text-red-700">⚠️ Error Details</div>
+                            <div class="text-xs bg-white p-2 rounded border max-h-32 overflow-y-auto font-mono whitespace-pre-wrap text-red-800">
+                                ${data.error_message.replace(/\\n/g, '\n')}
                             </div>
                         </div>
                     ` : ''}
@@ -671,14 +685,21 @@
                 case 'crm-response':
                     content = data.crm_response ? JSON.stringify(data.crm_response, null, 2) : 'No CRM response data available';
                     break;
+                case 'error':
+                    // Format error message to preserve line breaks
+                    content = data.error_message ? data.error_message.replace(/\\n/g, '\n') : 'No error message available';
+                    break;
             }
+            
+            // Determine if we should use pre-line formatting (for error messages and scraped data)
+            const usePreLine = isScrapedData || tabName === 'error';
             
             return `
                 <div class="relative">
                     <button onclick="copyToClipboard('${copyId}')" class="absolute top-2 right-2 px-2 py-1 bg-gray-200 hover:bg-gray-300 rounded text-xs">
                         Copy
                     </button>
-                    <pre id="${copyId}" class="bg-gray-100 p-4 rounded border text-xs font-mono overflow-x-auto max-h-96 overflow-y-auto ${isScrapedData ? 'whitespace-pre-line' : 'whitespace-pre-wrap'}">${content}</pre>
+                    <pre id="${copyId}" class="bg-gray-100 p-4 rounded border text-xs font-mono overflow-x-auto max-h-96 overflow-y-auto ${usePreLine ? 'whitespace-pre-line' : 'whitespace-pre-wrap'}">${content}</pre>
                 </div>
             `;
         }
