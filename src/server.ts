@@ -5,11 +5,16 @@ import { initializeDatabase } from './db';
 import queueRoutes from './routes/queue';
 import processor from './services/processor';
 import { authMiddleware, authPageMiddleware } from './middleware/auth';
+import { jsonDetectionMiddleware } from './middleware/jsonDetection';
 
 dotenv.config();
 
 const app: Express = express();
 const PORT = process.env.PORT || 20080;
+
+// TODO: Remove jsonDetectionMiddleware once Twenty fixes their webhook Content-Type headers
+// Custom middleware to handle JSON content sent with incorrect Content-Type headers
+app.use(jsonDetectionMiddleware);
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));

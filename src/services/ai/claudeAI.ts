@@ -103,14 +103,15 @@ Return a JSON object with company information, notes, contacts, and extracted da
       .replace('{{content}}', content);
   }
 
-  async processContent(content: string, company: Company): Promise<{result: AIAnalysisResult, prompt: string}> {
+  async processContent(content: string, company: Company): Promise<{result: AIAnalysisResult, prompt: string, data_source: 'claude_ai' | 'mock'}> {
     const prompt = this.preparePrompt(content, company);
     
     if (!this.anthropic) {
       console.log('🔄 Using mock AI data (Claude API not configured)');
       return {
         result: this.getMockAnalysis(company),
-        prompt: prompt
+        prompt: prompt,
+        data_source: 'mock'
       };
     }
 
@@ -135,7 +136,8 @@ Return a JSON object with company information, notes, contacts, and extracted da
       console.log(`✅ Claude AI analysis completed for ${company.company_id}`);
       return {
         result: analysis,
-        prompt: prompt
+        prompt: prompt,
+        data_source: 'claude_ai'
       };
 
     } catch (error) {
@@ -143,7 +145,8 @@ Return a JSON object with company information, notes, contacts, and extracted da
       console.log('🔄 Falling back to mock data');
       return {
         result: this.getMockAnalysis(company),
-        prompt: prompt
+        prompt: prompt,
+        data_source: 'mock'
       };
     }
   }
@@ -173,66 +176,62 @@ Return a JSON object with company information, notes, contacts, and extracted da
   private getMockAnalysis(company: Company): AIAnalysisResult {
     return {
       company_data: {
-        name: company.company_id.split('-').map(word => 
-          word.charAt(0).toUpperCase() + word.slice(1)
-        ).join(' '),
-        description: "A technology company specializing in innovative solutions for modern businesses.",
-        industry: "Technology",
-        size_category: "medium",
-        employee_count: 150,
-        employee_range: "100-200",
-        founded_year: 2010,
-        headquarters: "San Francisco, CA",
-        other_locations: ["New York, NY", "Austin, TX"],
-        phone: "+1-555-123-4567",
-        linkedin: "https://linkedin.com/company/example",
-        twitter: "https://twitter.com/example",
-        facebook: "https://facebook.com/example",
-        instagram: "https://instagram.com/example"
+        name: "[MOCK DATA] " + company.company_id.split('-').slice(0, 2).join('-'),
+        description: "⚠️ MOCK DATA: This is mock/test data - AI processing was not available. Real analysis would extract actual company information from the scraped website content.",
+        industry: "[MOCK] Technology",
+        size_category: "mock",
+        employee_count: 0,
+        employee_range: "MOCK: 0-0",
+        founded_year: 1900,
+        headquarters: "MOCK: Test City, XX",
+        other_locations: ["MOCK: Test Location 1", "MOCK: Test Location 2"],
+        phone: "+1-000-000-0000",
+        linkedin: "https://example.com/mock-linkedin",
+        twitter: "https://example.com/mock-twitter",
+        facebook: "https://example.com/mock-facebook",
+        instagram: "https://example.com/mock-instagram"
       },
       people: [
         {
-          email: "john.doe@example.com",
-          title: "CEO",
-          first_name: "John",
-          last_name: "Doe",
-          phone: "+1-555-123-4568",
-          linkedin: "https://linkedin.com/in/johndoe"
+          email: "mock.person1@example.com",
+          title: "[MOCK] CEO",
+          first_name: "Mock",
+          last_name: "Person1",
+          phone: "+1-000-000-0001",
+          linkedin: "https://example.com/mock-person1"
         },
         {
-          email: "jane.smith@example.com",
-          title: "CTO",
-          first_name: "Jane",
-          last_name: "Smith",
-          linkedin: "https://linkedin.com/in/janesmith"
+          email: "mock.person2@example.com",
+          title: "[MOCK] CTO", 
+          first_name: "Mock",
+          last_name: "Person2",
+          linkedin: "https://example.com/mock-person2"
         }
       ],
       services: {
-        company_overview: "Leading technology company focused on delivering innovative solutions for modern business challenges through cutting-edge technology and expert consulting services.",
-        offerings: "Custom software development, cloud migration services, data analytics solutions, artificial intelligence implementations, and digital transformation consulting.",
-        target_market: "Serves companies of all sizes, from startups to Fortune 500 enterprises, with a focus on businesses looking to modernize their technology infrastructure.",
-        tech_stack: "Cloud platforms, AI/ML frameworks, Modern web technologies, Database systems",
-        competitive_intel: "Distinguished by agile development approach, rapid delivery capabilities, high quality standards, and a diverse team of expert professionals.",
-        recent_activity: "Launched new AI consulting division, expanded to Austin office, hired 25 new engineers"
+        company_overview: "[MOCK] This is mock/test data - no real company analysis was performed. Real AI would analyze the actual scraped website content.",
+        offerings: "[MOCK] Mock services - real analysis would extract actual offerings from website content.",
+        target_market: "[MOCK] Mock target market - real analysis would identify actual customer segments.",
+        tech_stack: "[MOCK] Mock technology stack",
+        competitive_intel: "[MOCK] Mock competitive information - real analysis would extract actual differentiators.",
+        recent_activity: "[MOCK] Mock recent activity - real analysis would identify current company news/developments."
       },
       quality_signals: [
-        "Fortune 500 clients including major banks",
-        "ISO 27001 certified",
-        "Winner of Tech Innovation Award 2024",
-        "4.8/5 star client satisfaction rating"
+        "[MOCK] Mock quality signal 1 - real analysis would identify actual company achievements",
+        "[MOCK] Mock quality signal 2 - real analysis would extract credibility indicators",
+        "[MOCK] Mock quality signal 3 - this is test data only"
       ],
       growth_signals: [
-        "200% revenue growth in 2024",
-        "Expanded from 50 to 150 employees",
-        "Opened 2 new offices this year",
-        "Series B funding - $25M raised"
+        "[MOCK] Mock growth indicator 1 - real analysis would identify expansion signals",
+        "[MOCK] Mock growth indicator 2 - this is test data only",
+        "[MOCK] Mock growth indicator 3 - real analysis would extract growth metrics"
       ],
       industry_metrics: [
-        "Technology: 150 employees, $15M ARR",
-        "SaaS: 500+ enterprise clients, 2% churn rate",
-        "Consulting: 95% project success rate"
+        "[MOCK] Mock metric 1: This is test data",
+        "[MOCK] Mock metric 2: Real analysis would extract industry-specific KPIs",
+        "[MOCK] Mock metric 3: No real metrics available"
       ],
-      notes: "Additional company information: Strong presence in fintech and healthcare verticals. Known for rapid implementation and excellent customer support."
+      notes: "⚠️ MOCK DATA WARNING: This entire analysis is mock/test data because AI processing was not available (likely due to invalid API key or service unavailability). Real analysis would extract actual company information, contacts, and insights from the scraped website content. The scraped content was available but could not be processed by Claude AI."
     };
   }
 

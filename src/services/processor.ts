@@ -183,7 +183,8 @@ class ProcessorService {
         company_updated: false,
         notes_added: false,
         custom_fields_updated: false
-      }
+      },
+      data_source: aiResponse.data_source
     };
     
     this.updateCompanyProcessedData(company.company_id, JSON.stringify(processedData, null, 2));

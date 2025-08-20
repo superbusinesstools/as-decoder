@@ -41,4 +41,5 @@ export interface CRMProgress {
 export interface ProcessedData {
   ai_result: any;
   crm_progress?: CRMProgress;
+  data_source?: 'claude_ai' | 'mock';
 }

@@ -152,6 +152,20 @@
             }
         }
 
+        function isMockData(company) {
+            if (!company.processed_data) return false;
+            try {
+                const processedData = JSON.parse(company.processed_data);
+                return processedData.data_source === 'mock';
+            } catch (error) {
+                return false;
+            }
+        }
+
+        function getMockDataBadge() {
+            return '<span class="ml-2 px-1 py-0.5 text-xs bg-orange-100 text-orange-800 rounded border border-orange-300" title="This data was generated using mock/fallback data because AI processing was not available">🔬 MOCK</span>';
+        }
+
         function getStepIcon(step) {
             switch(step) {
                 case 'pending': return '⏸️';
@@ -273,6 +287,7 @@
                 <tr class="${company.status === 'failed' ? 'bg-red-50' : ''}" id="company-row-${index}">
                     <td class="px-4 py-3 text-sm font-medium text-gray-900 break-all">
                         ${company.company_id}
+                        ${isMockData(company) ? getMockDataBadge() : ''}
                     </td>
                     <td class="px-4 py-3 text-sm text-gray-500">
                         <a href="${company.website_url}" target="_blank" class="text-blue-500 hover:underline" title="${company.website_url}">
@@ -323,7 +338,10 @@
                 // Mobile cards
             mobileCards.innerHTML = filteredCompanies.map((company, index) => `
                 <div class="bg-white rounded-lg shadow p-4 ${company.status === 'failed' ? 'border-l-4 border-red-500' : ''}" id="mobile-card-${index}">
-                    <div class="font-semibold text-gray-800 mb-2">${company.company_id}</div>
+                    <div class="font-semibold text-gray-800 mb-2">
+                        ${company.company_id}
+                        ${isMockData(company) ? getMockDataBadge() : ''}
+                    </div>
                     <div class="text-sm text-gray-600 mb-2">
                         <a href="${company.website_url}" target="_blank" class="text-blue-500 hover:underline">
                             ${truncateUrl(company.website_url, 40)}
@@ -564,7 +582,7 @@
                     </div>
                     
                     <div class="bg-gray-100 p-3 rounded">
-                        <div class="font-semibold mb-2">AI Analysis</div>
+                        <div class="font-semibold mb-2">AI Analysis ${data.processed_data && JSON.parse(JSON.stringify(data.processed_data)).data_source === 'mock' ? '⚠️ MOCK DATA' : ''}</div>
                         <div class="text-xs bg-white p-2 rounded border max-h-32 overflow-y-auto font-mono">
                             ${data.processed_data ? JSON.stringify(data.processed_data, null, 2) : 'No data available'}
                         </div>
@@ -632,7 +650,20 @@
                     content = data.ai_prompt || 'No AI prompt available';
                     break;
                 case 'ai':
-                    content = data.processed_data ? JSON.stringify(data.processed_data, null, 2) : 'No AI analysis available';
+                    if (data.processed_data) {
+                        content = JSON.stringify(data.processed_data, null, 2);
+                        // Add mock data warning if applicable
+                        try {
+                            const parsedData = JSON.parse(JSON.stringify(data.processed_data));
+                            if (parsedData.data_source === 'mock') {
+                                content = '⚠️ MOCK DATA WARNING: This analysis was generated using fallback data because AI processing was not available.\n\n' + content;
+                            }
+                        } catch (e) {
+                            // Ignore parsing errors
+                        }
+                    } else {
+                        content = 'No AI analysis available';
+                    }
                     break;
                 case 'crm-request':
                     content = data.crm_request ? JSON.stringify(data.crm_request, null, 2) : 'No CRM request data available';

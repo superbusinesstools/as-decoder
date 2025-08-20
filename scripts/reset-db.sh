@@ -10,6 +10,16 @@ pkill -f "node dist/server.js" 2>/dev/null || true
 rm -f crawler.db*
 
 echo "✅ Database reset complete!"
-echo "📝 To test again:"
-echo "   npm run dev    # Start server"
-echo "   npm run seed   # Add test data"
+
+# Check if PM2 process exists and reload it
+if pm2 list | grep -q "as-decoder"; then
+    echo "🔄 Reloading PM2 application..."
+    pm2 reload as-decoder
+    echo "✅ Application reloaded!"
+else
+    echo "📝 PM2 process not found. To start the app:"
+    echo "   npm run dev    # Start in development"
+    echo "   npm run start  # Start with PM2"
+fi
+
+echo "📝 To add test data: npm run seed"
