@@ -12,79 +12,62 @@ EXTRACTION RULES:
 CRITICAL: Extract everything useful for sales outreach, lead qualification, and personalization. When uncertain, include rather than omit.
 
 OUTPUT REQUIREMENTS:
-Return ONLY valid JSON matching this exact structure. No additional text or formatting:
+Return ONLY valid JSON matching this exact structure. No additional text or formatting. All values must be strings, numbers, null, or arrays of strings as specified below.
 
 {
   "company_data": {
-    "name": "Full legal company name",
-    "description": "2-3 sentence company summary",
-    "industry": "Primary industry sector",
-    "size_category": "startup/small/medium/large/enterprise",
-    "employee_count": null,
-    "employee_range": "10-50 employees",
-    "founded_year": null,
-    "headquarters": "City, State/Country",
-    "other_locations": ["Location 1", "Location 2"],
-    "phone": "Include country code if available",
-    "linkedin": "Full URL or null",
-    "twitter": "Full URL or null",
-    "facebook": "Full URL or null",
-    "instagram": "Full URL or null"
+    "name": "string - Full legal company name",
+    "description": "string - 2-3 sentence company summary",
+    "industry": "string - Primary industry sector",
+    "size_category": "string - One of: startup/small/medium/large/enterprise",
+    "employee_count": "number or null - Exact number only if explicitly stated",
+    "employee_range": "string or null - Range like '10-50 employees' when inferred",
+    "founded_year": "number or null - Year as integer",
+    "headquarters": "string or null - City, State/Country",
+    "other_locations": "array of strings - ['Location 1', 'Location 2'] or empty array []",
+    "phone": "string or null - Include country code if available",
+    "linkedin": "string or null - Full URL only",
+    "twitter": "string or null - Full URL only",
+    "facebook": "string or null - Full URL only",
+    "instagram": "string or null - Full URL only"
   },
   "people": [
     {
-      "email": "Full email or partial if that's all available",
-      "title": "Exact job title as listed",
-      "first_name": "First name only",
-      "middle_name": "Middle name/initial or null",
-      "last_name": "Last name only",
-      "phone": "Direct line if available",
-      "linkedin": "Personal LinkedIn URL or null",
-      "twitter": "Personal Twitter URL or null",
-      "facebook": "Personal Facebook URL or null",
-      "instagram": "Personal Instagram URL or null"
+      "email": "string or null - Full email or partial if that's all available",
+      "title": "string or null - Exact job title as listed",
+      "first_name": "string or null - First name only",
+      "middle_name": "string or null - Middle name/initial",
+      "last_name": "string or null - Last name only",
+      "phone": "string or null - Direct line if available",
+      "linkedin": "string or null - Personal LinkedIn URL",
+      "twitter": "string or null - Personal Twitter URL",
+      "facebook": "string or null - Personal Facebook URL",
+      "instagram": "string or null - Personal Instagram URL"
     }
   ],
   "services": {
-    "company_overview": "Business description, mission/vision statements, founding story, culture/values, market position, unique philosophy",
-    "offerings": "ALL products/services with descriptions, features, pricing tiers, packages, capabilities, technical specs, use cases",
-    "proof_points": "Customer quotes with attribution, case study summaries with metrics, ROI claims, client logos/names, awards with dates, certifications (ISO/SOC2/etc), press mentions, performance stats",
-    "target_market": "Industries served, company sizes (SMB/Enterprise), geographic focus, buyer titles/departments, specific pain points addressed, ideal customer profile",
-    "key_people": "Leadership bios, board members, advisors, notable backgrounds, quotes from executives, speaking engagements, published articles",
-    "recent_activity": "News with dates, blog topics from last 6 months, product launches, funding rounds, partnerships, acquisitions, hiring initiatives, expansion plans",
-    "tech_stack": "Technologies mentioned, integrations, APIs, platforms supported, infrastructure (AWS/Azure/etc), security protocols, compliance standards (GDPR/HIPAA/etc)",
-    "competitive_intel": "Differentiation claims, competitor comparisons, 'why us' statements, alternatives mentioned, unique value props, pricing advantages"
+    "company_overview": "string - Business description, mission/vision statements, founding story, culture/values, market position, unique philosophy",
+    "offerings": "string - ALL products/services with descriptions, features, pricing tiers, packages, capabilities, technical specs, use cases",
+    "proof_points": "string - Customer quotes with attribution, case study summaries with metrics, ROI claims, client logos/names, awards with dates, certifications",
+    "target_market": "string - Industries served, company sizes, geographic focus, buyer titles/departments, specific pain points addressed",
+    "key_people": "string - Leadership bios, board members, advisors, notable backgrounds, quotes from executives, speaking engagements",
+    "recent_activity": "string - News with dates, blog topics from last 6 months, product launches, funding rounds, partnerships, acquisitions",
+    "tech_stack": "string - Technologies mentioned, integrations, APIs, platforms supported, infrastructure, security protocols, compliance standards",
+    "competitive_intel": "string - Differentiation claims, competitor comparisons, 'why us' statements, alternatives mentioned, unique value props"
   },
-  "quality_signals": [
-    "Fortune 500 clients",
-    "Unicorn status ($1B+ valuation)",
-    "Y Combinator/accelerator alumni",
-    "Industry awards or recognition",
-    "High-profile partnerships",
-    "Gartner/Forrester recognition",
-    "Strong review ratings (4.5+ stars)",
-    "Major certifications (ISO, SOC2)",
-    "Notable investors or board members"
-  ],
-  "growth_signals": [
-    "200% YoY revenue growth",
-    "Doubled headcount in 2024",
-    "25 open positions - actively hiring",
-    "Expanding to Europe and Asia",
-    "Series B - $50M raised Q3 2024",
-    "New office in Austin",
-    "3 product launches this year",
-    "From 100 to 500 customers in 12 months"
-  ],
-  "industry_metrics": [
-    "Healthcare: HIPAA compliant, works with Epic EHR",
-    "SaaS: $5M ARR, 5% monthly churn, 500 seats",
-    "Finance: $500M AUM, SEC registered",
-    "E-commerce: 10,000 SKUs, ships to 30 countries",
-    "Any industry-specific numbers or certifications"
-  ],
-  "notes": "Additional valuable information not fitting above categories, partial data worth capturing, non-English content with translations, other observations"
+  "quality_signals": "array of strings - ['Fortune 500 clients', 'Industry awards or recognition', 'High-profile partnerships'] or empty array []",
+  "growth_signals": "array of strings - ['200% YoY revenue growth', 'Series B - $50M raised Q3 2024', 'Expanding to Europe'] or empty array []",
+  "industry_metrics": "array of strings - ['Healthcare: HIPAA compliant', 'SaaS: $5M ARR, 5% monthly churn', 'Finance: $500M AUM'] or empty array []",
+  "notes": "string - Additional valuable information not fitting above categories, partial data worth capturing, observations"
 }
+
+TYPE ENFORCEMENT RULES:
+- ALL strings must be actual text content, never objects or arrays
+- ALL arrays must contain only strings, never objects
+- Use null for missing values, never empty strings ""
+- Numbers must be actual integers/floats, not strings
+- When concatenating multiple pieces of information into a string field, separate with periods or semicolons
+- For services section: combine all related information into single descriptive paragraphs
 
 WHAT TO LOOK FOR:
 
@@ -116,13 +99,13 @@ Industry-Specific Terms:
 
 IMPORTANT NOTES:
 - For employee_count: Use actual number ONLY if explicitly stated, otherwise null
-- For employee_range: Use text like "10-50" when you can infer from context
-- Quality/growth signals: Write as complete descriptive phrases, not just keywords
-- Industry_metrics: Include the context, e.g., "SaaS: $5M ARR" not just "5M"
-- Keep all lists as simple string arrays for easy CRM import
+- For employee_range: Use text like "10-50 employees" when you can infer from context
+- Quality/growth/industry signals: Write as complete descriptive phrases in array format
+- All services fields must be strings containing full sentences and paragraphs
+- Keep all arrays as simple string arrays for easy CRM import
+- Never return nested objects or complex data structures
 
 Remember: This data powers sales intelligence. Completeness > Perfection. Extract everything that could help identify, qualify, or personalize outreach to this company.
-
 
 CONTEXT:
 Company: {{company_id}}
