@@ -524,6 +524,9 @@
                         <button class="px-4 py-2 bg-blue-500 text-white rounded-t detail-tab active" onclick="showTab(${index}, 'scraped')">
                             Scraped Data
                         </button>
+                        <button class="px-4 py-2 bg-gray-200 text-gray-700 rounded-t detail-tab ml-1" onclick="showTab(${index}, 'ai-prompt')">
+                            AI Prompt
+                        </button>
                         <button class="px-4 py-2 bg-gray-200 text-gray-700 rounded-t detail-tab ml-1" onclick="showTab(${index}, 'ai')">
                             AI Analysis
                         </button>
@@ -550,6 +553,13 @@
                         <div class="font-semibold mb-2">Scraped Data</div>
                         <div class="text-xs bg-white p-2 rounded border max-h-32 overflow-y-auto font-mono whitespace-pre-line">
                             ${data.raw_data ? (typeof data.raw_data === 'string' ? data.raw_data : JSON.stringify(data.raw_data, null, 2)) : 'No data available'}
+                        </div>
+                    </div>
+                    
+                    <div class="bg-gray-100 p-3 rounded">
+                        <div class="font-semibold mb-2">AI Prompt</div>
+                        <div class="text-xs bg-white p-2 rounded border max-h-32 overflow-y-auto font-mono whitespace-pre-line">
+                            ${data.ai_prompt || 'No AI prompt available'}
                         </div>
                     </div>
                     
@@ -616,6 +626,10 @@
                     } else {
                         content = 'No scraped data available';
                     }
+                    break;
+                case 'ai-prompt':
+                    isScrapedData = true; // Use same formatting for readability
+                    content = data.ai_prompt || 'No AI prompt available';
                     break;
                 case 'ai':
                     content = data.processed_data ? JSON.stringify(data.processed_data, null, 2) : 'No AI analysis available';

@@ -73,6 +73,13 @@ export function initializeDatabase() {
   } catch (error) {
     // Column already exists, ignore error
   }
+
+  // Add AI prompt column for debugging
+  try {
+    db.exec(`ALTER TABLE companies ADD COLUMN ai_prompt TEXT;`);
+  } catch (error) {
+    // Column already exists, ignore error
+  }
 }
 
 export default db;

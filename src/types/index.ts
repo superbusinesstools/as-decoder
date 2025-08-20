@@ -15,6 +15,7 @@ export interface Company {
   processed_data?: string;
   crm_request?: string;
   crm_response?: string;
+  ai_prompt?: string;
   error_message?: string;
   created_at: string;
   updated_at: string;

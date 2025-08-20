@@ -159,6 +159,15 @@ export class QueueService {
     `);
     stmt.run(crmRequest, crmResponse, companyId);
   }
+
+  updateCompanyAiPrompt(companyId: string, aiPrompt: string): void {
+    const stmt = db.prepare(`
+      UPDATE companies 
+      SET ai_prompt = ?
+      WHERE company_id = ?
+    `);
+    stmt.run(aiPrompt, companyId);
+  }
 }
 
 export default new QueueService();

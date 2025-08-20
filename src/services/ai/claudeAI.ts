@@ -103,16 +103,19 @@ Return a JSON object with company information, notes, contacts, and extracted da
       .replace('{{content}}', content);
   }
 
-  async processContent(content: string, company: Company): Promise<AIAnalysisResult> {
+  async processContent(content: string, company: Company): Promise<{result: AIAnalysisResult, prompt: string}> {
+    const prompt = this.preparePrompt(content, company);
+    
     if (!this.anthropic) {
       console.log('🔄 Using mock AI data (Claude API not configured)');
-      return this.getMockAnalysis(company);
+      return {
+        result: this.getMockAnalysis(company),
+        prompt: prompt
+      };
     }
 
     try {
       console.log(`🤖 Processing content for ${company.company_id} with Claude AI`);
-      
-      const prompt = this.preparePrompt(content, company);
       
       const response = await this.anthropic.messages.create({
         model: process.env.CLAUDE_MODEL || 'claude-3-haiku-20240307',
@@ -130,12 +133,18 @@ Return a JSON object with company information, notes, contacts, and extracted da
       const analysis = this.parseAIResponse(responseText);
       
       console.log(`✅ Claude AI analysis completed for ${company.company_id}`);
-      return analysis;
+      return {
+        result: analysis,
+        prompt: prompt
+      };
 
     } catch (error) {
       console.error('❌ Claude AI processing failed:', error);
       console.log('🔄 Falling back to mock data');
-      return this.getMockAnalysis(company);
+      return {
+        result: this.getMockAnalysis(company),
+        prompt: prompt
+      };
     }
   }
 

@@ -170,11 +170,14 @@ class ProcessorService {
     const rawData = company.raw_data || '';
     
     // Process with Claude AI
-    const aiAnalysis = await claudeAI.processContent(rawData, company);
+    const aiResponse = await claudeAI.processContent(rawData, company);
+    
+    // Save the AI prompt for debugging
+    queueService.updateCompanyAiPrompt(company.company_id, aiResponse.prompt);
     
     // Create processed data structure
     const processedData: ProcessedData = {
-      ai_result: aiAnalysis,
+      ai_result: aiResponse.result,
       crm_progress: {
         contact_created: false,
         company_updated: false,
@@ -184,7 +187,7 @@ class ProcessorService {
     };
     
     this.updateCompanyProcessedData(company.company_id, JSON.stringify(processedData, null, 2));
-    console.log(`✅ AI processing completed for ${company.company_id} (${aiAnalysis.people?.length || 0} people, ${aiAnalysis.quality_signals?.length || 0} quality signals)`);
+    console.log(`✅ AI processing completed for ${company.company_id} (${aiResponse.result.people?.length || 0} people, ${aiResponse.result.quality_signals?.length || 0} quality signals)`);
     
     queueService.addProcessLog({
       company_id: company.company_id,
