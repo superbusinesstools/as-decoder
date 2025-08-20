@@ -3,11 +3,14 @@ import fetch from 'node-fetch';
 export class WebsiteScraper {
     private scraperApiUrl: string;
     private scraperTimeout: number;
+    private scraperThreads: number;
 
     constructor() {
         this.scraperApiUrl = process.env.SCRAPER_API_URL || 'https://as-scraper.afternoonltd.com';
-        // Default timeout of 4 minutes (240000ms)
-        this.scraperTimeout = parseInt(process.env.SCRAPER_TIMEOUT || '240000');
+        // Default timeout of 4 minutes (240 seconds) - convert to milliseconds
+        this.scraperTimeout = parseInt(process.env.SCRAPER_TIMEOUT_SECONDS || '240') * 1000;
+        // Default threads: 6 (range: 1-20)
+        this.scraperThreads = parseInt(process.env.SCRAPER_THREADS || '6');
     }
 
     async scrapeWebsite(startUrl: string, maxDepth: number = 2, maxPages: number = 10): Promise<{
@@ -19,7 +22,7 @@ export class WebsiteScraper {
         error?: string;
     }> {
         try {
-            console.log(`🌐 Scraping ${startUrl} via API (depth: ${maxDepth}, max pages: ${maxPages}, timeout: ${this.scraperTimeout}ms)`);
+            console.log(`🌐 Scraping ${startUrl} via API (depth: ${maxDepth}, max pages: ${maxPages}, threads: ${this.scraperThreads}, timeout: ${this.scraperTimeout / 1000}s)`);
             
             // Set up timeout
             const controller = new AbortController();
@@ -36,7 +39,8 @@ export class WebsiteScraper {
                 body: JSON.stringify({
                     url: startUrl,
                     max_depth: maxDepth,
-                    max_pages: maxPages
+                    max_pages: maxPages,
+                    threads: this.scraperThreads
                 }),
                 signal: controller.signal as any
             });
@@ -61,7 +65,7 @@ export class WebsiteScraper {
             let errorMessage = 'Unknown error';
             
             if (error.name === 'AbortError') {
-                errorMessage = `Scraping timeout after ${this.scraperTimeout}ms`;
+                errorMessage = `Scraping timeout after ${this.scraperTimeout / 1000} seconds`;
             } else if (error instanceof Error) {
                 errorMessage = error.message;
             }

@@ -33,7 +33,8 @@ Extract content from a website with configurable crawling parameters.
 {
   "url": "string",        // Required: The URL to scrape
   "max_depth": integer,   // Optional: Maximum crawl depth (default: 3, max: 10)
-  "max_pages": integer    // Optional: Maximum pages to crawl (default: 250, max: 1000)
+  "max_pages": integer,   // Optional: Maximum pages to crawl (default: 250, max: 1000)
+  "threads": integer      // Optional: Number of concurrent threads (default: 6, max: 20)
 }
 ```
 
@@ -74,6 +75,18 @@ curl -X POST https://as-scraper.afternoonltd.com/scrape \
   }'
 ```
 
+### Custom Thread Count
+```bash
+curl -X POST https://as-scraper.afternoonltd.com/scrape \
+  -H "Content-Type: application/json" \
+  -d '{
+    "url": "example.com",
+    "max_depth": 2,
+    "max_pages": 100,
+    "threads": 10
+  }'
+```
+
 ### Python Example
 ```python
 import requests
@@ -83,7 +96,8 @@ url = "https://as-scraper.afternoonltd.com/scrape"
 payload = {
     "url": "example.com",
     "max_depth": 2,
-    "max_pages": 100
+    "max_pages": 100,
+    "threads": 8  # Optional: adjust concurrent threads
 }
 headers = {"Content-Type": "application/json"}
 
@@ -108,7 +122,8 @@ async function scrapeWebsite(targetUrl) {
     const response = await axios.post('https://as-scraper.afternoonltd.com/scrape', {
       url: targetUrl,
       max_depth: 2,
-      max_pages: 100
+      max_pages: 100,
+      threads: 8  // Optional: adjust concurrent threads
     }, {
       headers: {
         'Content-Type': 'application/json'
@@ -136,7 +151,8 @@ $url = 'https://as-scraper.afternoonltd.com/scrape';
 $data = array(
     'url' => 'example.com',
     'max_depth' => 2,
-    'max_pages' => 100
+    'max_pages' => 100,
+    'threads' => 8  // Optional: adjust concurrent threads
 );
 
 $options = array(
@@ -186,11 +202,26 @@ if ($response['success']) {
 - **Range:** 1-1000
 - **Description:** Maximum number of pages to scrape. The crawler will stop after reaching this limit, even if there are more pages to discover within the depth limit.
 
+### threads
+- **Type:** Integer
+- **Required:** No
+- **Default:** 6
+- **Range:** 1-20
+- **Description:** Number of concurrent threads for parallel scraping. Higher values speed up scraping but increase server load:
+  - `1-3` = Conservative (slower, very polite)
+  - `4-8` = Balanced (good speed, respectful)
+  - `9-15` = Aggressive (fast, higher server load)
+  - `16-20` = Maximum (fastest, use with caution)
+
 ## Performance Characteristics
 
-- **Concurrent Threads:** 6 (processes multiple pages simultaneously)
+- **Concurrent Threads:** Configurable 1-20 (default: 6)
 - **Request Delay:** 250ms between requests (to be respectful to target servers)
-- **Typical Speed:** Can scrape 10-20 pages per second depending on target server response time
+- **Typical Speed:** 
+  - 1 thread: ~3-4 pages/second
+  - 6 threads: ~10-20 pages/second
+  - 10+ threads: ~20-40 pages/second
+  (Actual speed depends on target server response time)
 - **Timeout:** Individual page requests timeout after 30 seconds
 
 ## Content Extraction

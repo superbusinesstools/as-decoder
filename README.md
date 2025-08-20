@@ -50,9 +50,13 @@ ANTHROPIC_API_KEY=your_anthropic_api_key_here
 CLAUDE_MODEL=claude-3-haiku-20240307
 
 # Crawling Configuration
-CRAWL_MAX_DEPTH=3      # How many "clicks" deep to follow links (1=homepage only, 2=homepage+linked pages, 3=deeper)
-CRAWL_MAX_PAGES=20     # Maximum total pages to scrape (prevents crawling huge sites)
-SCRAPER_TIMEOUT=240000 # Scraper timeout in milliseconds (default: 4 minutes)
+CRAWL_MAX_DEPTH=3              # How many "clicks" deep to follow links (1=homepage only, 2=homepage+linked pages, 3=deeper)
+CRAWL_MAX_PAGES=20             # Maximum total pages to scrape (prevents crawling huge sites)
+
+# Scraper API Configuration
+SCRAPER_API_URL=https://as-scraper.afternoonltd.com
+SCRAPER_TIMEOUT_SECONDS=240    # Scraper timeout in seconds (default: 4 minutes)
+SCRAPER_THREADS=6              # Concurrent threads for scraping (default: 6, range: 1-20)
 
 # Authentication
 AUTH_TOKEN=772716ceb4cb117fb2858a7c0147e126841f09ce978ac5cb0dcf1ffb75b33cf2  # Required for API access and dashboard
@@ -439,8 +443,14 @@ The system processes companies through 4 resumable steps:
 - Non-UUID company IDs will be rejected with a clear error message
 - Use valid UUIDs when queuing companies for CRM integration
 
-**Scraper Timeouts:**
-- Default timeout: 4 minutes (configurable via `SCRAPER_TIMEOUT`)
+**Scraper Configuration:**
+- **Timeout**: Default 240 seconds (configurable via `SCRAPER_TIMEOUT_SECONDS`)
+- **Threads**: Default 6 concurrent threads (configurable via `SCRAPER_THREADS`, range: 1-20)
+- **Performance**: More threads = faster scraping but higher server load
+- **Recommendations**: 
+  - Use 1-3 threads for conservative scraping
+  - Use 4-8 threads for balanced performance
+  - Use 9+ threads for aggressive scraping (use with caution)
 - Large or slow websites may timeout - restart the job or increase timeout
 - Failed scraping jobs can be restarted from the dashboard
 
