@@ -40,7 +40,8 @@ export class WebsiteScraper {
                     url: startUrl,
                     max_depth: maxDepth,
                     max_pages: maxPages,
-                    threads: this.scraperThreads
+                    threads: this.scraperThreads,
+                    timeout_minutes: Math.ceil(this.scraperTimeout / 1000 / 60)
                 }),
                 signal: controller.signal as any
             });
