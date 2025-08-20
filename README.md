@@ -52,6 +52,10 @@ CLAUDE_MODEL=claude-3-haiku-20240307
 # Crawling Configuration
 CRAWL_MAX_DEPTH=3      # How many "clicks" deep to follow links (1=homepage only, 2=homepage+linked pages, 3=deeper)
 CRAWL_MAX_PAGES=20     # Maximum total pages to scrape (prevents crawling huge sites)
+SCRAPER_TIMEOUT=240000 # Scraper timeout in milliseconds (default: 4 minutes)
+
+# Authentication
+AUTH_TOKEN=772716ceb4cb117fb2858a7c0147e126841f09ce978ac5cb0dcf1ffb75b33cf2  # Required for API access and dashboard
 
 # Twenty CRM API Configuration
 TWENTY_API_URL=https://20.afternoonltd.com
@@ -139,8 +143,33 @@ npm run scrape https://example.com --verbose
 
 ## API Endpoints
 
+### Authentication
+
+All API endpoints (except `/api/health`) require authentication using an auth token. There are two ways to provide the token:
+
+1. **Header**: `X-Auth-Token: YOUR_AUTH_TOKEN`
+2. **Query Parameter**: `?token=YOUR_AUTH_TOKEN`
+
+**Current Auth Token**: `772716ceb4cb117fb2858a7c0147e126841f09ce978ac5cb0dcf1ffb75b33cf2`
+
 ### Web Dashboard
-Access the status dashboard at: `https://as-decoder.afternoonltd.com/status.html`
+
+Access the enhanced status dashboard at: `https://as-decoder.afternoonltd.com/status.html`
+
+**Features:**
+- 🔐 Password protected with auth token
+- 📊 Summary cards showing status counts
+- 🔍 Search by Company ID
+- 🎯 Filter by status (pending, processing, completed, failed)
+- 🔄 Restart individual or all failed jobs
+- 📱 Mobile-responsive design
+- ⏱️ Auto-refresh every 10 seconds
+- 📝 Shows website URLs and error messages for failed jobs
+
+**Login Instructions:**
+1. Navigate to `https://as-decoder.afternoonltd.com/status.html`
+2. Enter the auth token: `772716ceb4cb117fb2858a7c0147e126841f09ce978ac5cb0dcf1ffb75b33cf2`
+3. The token will be saved in your browser for convenience
 
 ### POST /api/queue
 Queue a company for processing.
@@ -195,17 +224,19 @@ Queue a company for processing.
 
 **CURL Examples:**
 ```bash
-# Queue a company for processing
+# Queue a company for processing (with auth)
 curl -X POST https://as-decoder.afternoonltd.com/api/queue \
   -H "Content-Type: application/json" \
+  -H "X-Auth-Token: 772716ceb4cb117fb2858a7c0147e126841f09ce978ac5cb0dcf1ffb75b33cf2" \
   -d '{
     "company_id": "test-company-123",
     "website_url": "https://example.com"
   }'
 
-# Queue with optional source_url
+# Queue with optional source_url (with auth)
 curl -X POST https://as-decoder.afternoonltd.com/api/queue \
   -H "Content-Type: application/json" \
+  -H "X-Auth-Token: 772716ceb4cb117fb2858a7c0147e126841f09ce978ac5cb0dcf1ffb75b33cf2" \
   -d '{
     "company_id": "test-company-456",
     "website_url": "https://example.com",
@@ -218,7 +249,8 @@ Get company status and process logs.
 
 **CURL Example:**
 ```bash
-curl https://as-decoder.afternoonltd.com/api/queue/test-company-123
+curl https://as-decoder.afternoonltd.com/api/queue/test-company-123 \
+  -H "X-Auth-Token: 772716ceb4cb117fb2858a7c0147e126841f09ce978ac5cb0dcf1ffb75b33cf2"
 ```
 
 **Response (200):**
@@ -253,7 +285,7 @@ curl https://as-decoder.afternoonltd.com/api/queue/test-company-123
 ```
 
 ### GET /api/health
-Health check endpoint.
+Health check endpoint (no authentication required).
 
 **CURL Example:**
 ```bash
@@ -269,11 +301,13 @@ Get recent processing status for all companies.
 
 **CURL Examples:**
 ```bash
-# Get recent companies (default: 20 items, page 1)
-curl https://as-decoder.afternoonltd.com/api/queue/status/recent
+# Get recent companies (default: 20 items, page 1) with auth
+curl https://as-decoder.afternoonltd.com/api/queue/status/recent \
+  -H "X-Auth-Token: 772716ceb4cb117fb2858a7c0147e126841f09ce978ac5cb0dcf1ffb75b33cf2"
 
-# Get page 2 with 30 items per page
-curl "https://as-decoder.afternoonltd.com/api/queue/status/recent?page=2&limit=30"
+# Get page 2 with 30 items per page (with auth)
+curl "https://as-decoder.afternoonltd.com/api/queue/status/recent?page=2&limit=30" \
+  -H "X-Auth-Token: 772716ceb4cb117fb2858a7c0147e126841f09ce978ac5cb0dcf1ffb75b33cf2"
 ```
 
 **Response (200):**
@@ -303,7 +337,8 @@ Get all failed jobs.
 
 **CURL Example:**
 ```bash
-curl https://as-decoder.afternoonltd.com/api/queue/status/failed
+curl https://as-decoder.afternoonltd.com/api/queue/status/failed \
+  -H "X-Auth-Token: 772716ceb4cb117fb2858a7c0147e126841f09ce978ac5cb0dcf1ffb75b33cf2"
 ```
 
 ### POST /api/queue/:company_id/restart
@@ -311,7 +346,8 @@ Restart a failed job from the last successful step.
 
 **CURL Example:**
 ```bash
-curl -X POST https://as-decoder.afternoonltd.com/api/queue/test-company-123/restart
+curl -X POST https://as-decoder.afternoonltd.com/api/queue/test-company-123/restart \
+  -H "X-Auth-Token: 772716ceb4cb117fb2858a7c0147e126841f09ce978ac5cb0dcf1ffb75b33cf2"
 ```
 
 ## Monitoring & Status
@@ -386,7 +422,7 @@ npm run restart-jobs dr-petes-003
 The system processes companies through 4 resumable steps:
 
 1. **Receive Company Data**: Company details are queued via API endpoint
-2. **Website Crawling**: Extract content using Puppeteer and Scrapy (skipped if raw_data exists)
+2. **Website Crawling**: Extract content using Scraper API (skipped if raw_data exists)
 3. **AI Processing**: Analyze content with Claude AI (skipped if processed_data exists)
 4. **CRM Integration**: Send structured data to CRM with sub-step tracking
 
@@ -394,6 +430,24 @@ The system processes companies through 4 resumable steps:
 - If any step fails, the system can resume from that exact step
 - No repeated work - expensive operations like crawling and AI analysis won't be re-run
 - Sub-step tracking for CRM integration allows partial completion recovery
+- Error messages are stored in the database for debugging
+
+### Error Handling & Validation
+
+**Company ID Validation:**
+- Twenty CRM requires company IDs to be in UUID format (e.g., `123e4567-e89b-12d3-a456-426614174000`)
+- Non-UUID company IDs will be rejected with a clear error message
+- Use valid UUIDs when queuing companies for CRM integration
+
+**Scraper Timeouts:**
+- Default timeout: 4 minutes (configurable via `SCRAPER_TIMEOUT`)
+- Large or slow websites may timeout - restart the job or increase timeout
+- Failed scraping jobs can be restarted from the dashboard
+
+**Error Messages:**
+- All errors are stored in the `error_message` column in the database
+- View error details in the status dashboard for debugging
+- Common errors include timeouts, invalid UUIDs, and API connectivity issues
 
 ## AI Integration
 
