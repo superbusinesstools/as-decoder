@@ -92,11 +92,12 @@
                             <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase hidden md:table-cell">Created</th>
                             <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase hidden md:table-cell">Updated</th>
                             <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Actions</th>
+                            <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">Details</th>
                         </tr>
                     </thead>
                     <tbody id="companiesTable" class="bg-white divide-y divide-gray-200">
                         <tr>
-                            <td colspan="7" class="px-4 py-3 text-center text-gray-500">Loading...</td>
+                            <td colspan="8" class="px-4 py-3 text-center text-gray-500">Loading...</td>
                         </tr>
                     </tbody>
                 </table>
@@ -268,14 +269,14 @@
             const mobileCards = document.getElementById('mobileCards');
             
             if (filteredCompanies.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="7" class="px-4 py-3 text-center text-gray-500">No companies found</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="8" class="px-4 py-3 text-center text-gray-500">No companies found</td></tr>';
                 mobileCards.innerHTML = '<div class="text-center text-gray-500 p-4">No companies found</div>';
                 return;
             }
             
             // Desktop table
-            tbody.innerHTML = filteredCompanies.map(company => `
-                <tr class="${company.status === 'failed' ? 'bg-red-50' : ''}">
+            tbody.innerHTML = filteredCompanies.map((company, index) => `
+                <tr class="${company.status === 'failed' ? 'bg-red-50' : ''}" id="company-row-${index}">
                     <td class="px-4 py-3 text-sm font-medium text-gray-900 break-all">
                         ${company.company_id}
                     </td>
@@ -305,12 +306,29 @@
                             </button>` : 
                             '<span class="text-gray-400">-</span>'}
                     </td>
+                    <td class="px-4 py-3 text-center">
+                        <button onclick="toggleDetails('${company.company_id}', ${index})" class="p-2 text-gray-500 hover:text-blue-600 transition-colors" id="toggle-btn-${index}">
+                            <svg class="w-4 h-4 transform transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                            </svg>
+                        </button>
+                    </td>
+                </tr>
+                <tr id="detail-row-${index}" class="hidden bg-gray-50">
+                    <td colspan="8" class="px-4 py-6">
+                        <div id="detail-content-${index}" class="w-full">
+                            <div class="flex justify-center items-center py-4">
+                                <div class="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-500"></div>
+                                <span class="ml-2 text-gray-600">Loading details...</span>
+                            </div>
+                        </div>
+                    </td>
                 </tr>
             `).join('');
             
-            // Mobile cards
-            mobileCards.innerHTML = filteredCompanies.map(company => `
-                <div class="bg-white rounded-lg shadow p-4 ${company.status === 'failed' ? 'border-l-4 border-red-500' : ''}">
+                // Mobile cards
+            mobileCards.innerHTML = filteredCompanies.map((company, index) => `
+                <div class="bg-white rounded-lg shadow p-4 ${company.status === 'failed' ? 'border-l-4 border-red-500' : ''}" id="mobile-card-${index}">
                     <div class="font-semibold text-gray-800 mb-2">${company.company_id}</div>
                     <div class="text-sm text-gray-600 mb-2">
                         <a href="${company.website_url}" target="_blank" class="text-blue-500 hover:underline">
@@ -328,10 +346,21 @@
                     <div class="text-xs text-gray-500 mb-2">
                         Created: ${formatDate(company.created_at)}
                     </div>
-                    ${company.status === 'failed' ? 
-                        `<button onclick="restartJob('${company.company_id}')" class="w-full px-3 py-2 bg-orange-500 text-white rounded hover:bg-orange-600">
-                            Restart Job
-                        </button>` : ''}
+                    <div class="flex gap-2">
+                        ${company.status === 'failed' ? 
+                            `<button onclick="restartJob('${company.company_id}')" class="flex-1 px-3 py-2 bg-orange-500 text-white rounded hover:bg-orange-600">
+                                Restart Job
+                            </button>` : ''}
+                        <button onclick="toggleDetailsMobile('${company.company_id}', ${index})" class="px-3 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 text-sm" id="mobile-toggle-btn-${index}">
+                            View Details
+                        </button>
+                    </div>
+                    <div id="mobile-detail-${index}" class="hidden mt-4 pt-4 border-t">
+                        <div class="flex justify-center items-center py-4">
+                            <div class="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-500"></div>
+                            <span class="ml-2 text-gray-600">Loading details...</span>
+                        </div>
+                    </div>
                 </div>
             `).join('');
             
@@ -376,7 +405,7 @@
             } catch (error) {
                 console.error('Error loading data:', error);
                 document.getElementById('companiesTable').innerHTML = 
-                    '<tr><td colspan="7" class="px-4 py-3 text-center text-red-500">Error loading data</td></tr>';
+                    '<tr><td colspan="8" class="px-4 py-3 text-center text-red-500">Error loading data</td></tr>';
             }
         }
 
@@ -393,6 +422,232 @@
         
         // Auto-refresh every 10 seconds
         setInterval(loadData, 10000);
+        
+        // Store expanded states
+        const expandedStates = new Set();
+        const detailCache = new Map();
+        
+        function toggleDetails(companyId, index) {
+            const detailRow = document.getElementById(`detail-row-${index}`);
+            const toggleBtn = document.getElementById(`toggle-btn-${index}`);
+            const chevron = toggleBtn.querySelector('svg');
+            
+            if (detailRow.classList.contains('hidden')) {
+                // Show details
+                detailRow.classList.remove('hidden');
+                chevron.style.transform = 'rotate(180deg)';
+                expandedStates.add(companyId);
+                
+                // Load data if not cached
+                if (!detailCache.has(companyId)) {
+                    loadCompanyDetails(companyId, index);
+                }
+            } else {
+                // Hide details
+                detailRow.classList.add('hidden');
+                chevron.style.transform = 'rotate(0deg)';
+                expandedStates.delete(companyId);
+            }
+        }
+        
+        function toggleDetailsMobile(companyId, index) {
+            const detailDiv = document.getElementById(`mobile-detail-${index}`);
+            const toggleBtn = document.getElementById(`mobile-toggle-btn-${index}`);
+            
+            if (detailDiv.classList.contains('hidden')) {
+                // Show details
+                detailDiv.classList.remove('hidden');
+                toggleBtn.textContent = 'Hide Details';
+                expandedStates.add(companyId);
+                
+                // Load data if not cached
+                if (!detailCache.has(companyId)) {
+                    loadCompanyDetailsMobile(companyId, index);
+                }
+            } else {
+                // Hide details
+                detailDiv.classList.add('hidden');
+                toggleBtn.textContent = 'View Details';
+                expandedStates.delete(companyId);
+            }
+        }
+        
+        async function loadCompanyDetails(companyId, index) {
+            try {
+                const headers = {};
+                if (authToken) {
+                    headers['X-Auth-Token'] = authToken;
+                }
+                
+                const response = await fetch(`/api/queue/${companyId}/detail`, { headers });
+                const result = await response.json();
+                
+                if (result.success) {
+                    const data = result.data;
+                    detailCache.set(companyId, data);
+                    renderDetailContent(index, data);
+                } else {
+                    document.getElementById(`detail-content-${index}`).innerHTML = 
+                        '<div class="text-red-500 text-center py-4">Failed to load details</div>';
+                }
+            } catch (error) {
+                console.error('Error loading company details:', error);
+                document.getElementById(`detail-content-${index}`).innerHTML = 
+                    '<div class="text-red-500 text-center py-4">Error loading details</div>';
+            }
+        }
+        
+        async function loadCompanyDetailsMobile(companyId, index) {
+            try {
+                const headers = {};
+                if (authToken) {
+                    headers['X-Auth-Token'] = authToken;
+                }
+                
+                const response = await fetch(`/api/queue/${companyId}/detail`, { headers });
+                const result = await response.json();
+                
+                if (result.success) {
+                    const data = result.data;
+                    detailCache.set(companyId, data);
+                    renderDetailContentMobile(index, data);
+                } else {
+                    document.getElementById(`mobile-detail-${index}`).innerHTML = 
+                        '<div class="text-red-500 text-center py-4">Failed to load details</div>';
+                }
+            } catch (error) {
+                console.error('Error loading company details:', error);
+                document.getElementById(`mobile-detail-${index}`).innerHTML = 
+                    '<div class="text-red-500 text-center py-4">Error loading details</div>';
+            }
+        }
+        
+        function renderDetailContent(index, data) {
+            const container = document.getElementById(`detail-content-${index}`);
+            container.innerHTML = `
+                <div class="max-w-full">
+                    <div class="flex flex-wrap border-b mb-4">
+                        <button class="px-4 py-2 bg-blue-500 text-white rounded-t detail-tab active" onclick="showTab(${index}, 'scraped')">
+                            Scraped Data
+                        </button>
+                        <button class="px-4 py-2 bg-gray-200 text-gray-700 rounded-t detail-tab ml-1" onclick="showTab(${index}, 'ai')">
+                            AI Analysis
+                        </button>
+                        <button class="px-4 py-2 bg-gray-200 text-gray-700 rounded-t detail-tab ml-1" onclick="showTab(${index}, 'crm-request')">
+                            CRM Request
+                        </button>
+                        <button class="px-4 py-2 bg-gray-200 text-gray-700 rounded-t detail-tab ml-1" onclick="showTab(${index}, 'crm-response')">
+                            CRM Response
+                        </button>
+                    </div>
+                    
+                    <div id="tab-content-${index}">
+                        ${renderTabContent(data, 'scraped')}
+                    </div>
+                </div>
+            `;
+        }
+        
+        function renderDetailContentMobile(index, data) {
+            const container = document.getElementById(`mobile-detail-${index}`);
+            container.innerHTML = `
+                <div class="space-y-4">
+                    <div class="bg-gray-100 p-3 rounded">
+                        <div class="font-semibold mb-2">Scraped Data</div>
+                        <div class="text-xs bg-white p-2 rounded border max-h-32 overflow-y-auto font-mono">
+                            ${data.raw_data ? JSON.stringify(data.raw_data, null, 2) : 'No data available'}
+                        </div>
+                    </div>
+                    
+                    <div class="bg-gray-100 p-3 rounded">
+                        <div class="font-semibold mb-2">AI Analysis</div>
+                        <div class="text-xs bg-white p-2 rounded border max-h-32 overflow-y-auto font-mono">
+                            ${data.processed_data ? JSON.stringify(data.processed_data, null, 2) : 'No data available'}
+                        </div>
+                    </div>
+                    
+                    ${data.crm_request ? `
+                        <div class="bg-gray-100 p-3 rounded">
+                            <div class="font-semibold mb-2">CRM Request</div>
+                            <div class="text-xs bg-white p-2 rounded border max-h-32 overflow-y-auto font-mono">
+                                ${JSON.stringify(data.crm_request, null, 2)}
+                            </div>
+                        </div>
+                    ` : ''}
+                    
+                    ${data.crm_response ? `
+                        <div class="bg-gray-100 p-3 rounded">
+                            <div class="font-semibold mb-2">CRM Response</div>
+                            <div class="text-xs bg-white p-2 rounded border max-h-32 overflow-y-auto font-mono">
+                                ${JSON.stringify(data.crm_response, null, 2)}
+                            </div>
+                        </div>
+                    ` : ''}
+                </div>
+            `;
+        }
+        
+        function showTab(index, tabName) {
+            const data = detailCache.get(filteredCompanies[index].company_id);
+            if (!data) return;
+            
+            // Update tab buttons
+            const tabButtons = document.querySelectorAll(`#detail-content-${index} .detail-tab`);
+            tabButtons.forEach(btn => {
+                btn.classList.remove('bg-blue-500', 'text-white', 'active');
+                btn.classList.add('bg-gray-200', 'text-gray-700');
+            });
+            event.target.classList.add('bg-blue-500', 'text-white', 'active');
+            event.target.classList.remove('bg-gray-200', 'text-gray-700');
+            
+            // Update content
+            document.getElementById(`tab-content-${index}`).innerHTML = renderTabContent(data, tabName);
+        }
+        
+        function renderTabContent(data, tabName) {
+            const copyId = `copy-${tabName}-${Date.now()}`;
+            let content = 'No data available';
+            
+            switch(tabName) {
+                case 'scraped':
+                    content = data.raw_data ? JSON.stringify(data.raw_data, null, 2) : 'No scraped data available';
+                    break;
+                case 'ai':
+                    content = data.processed_data ? JSON.stringify(data.processed_data, null, 2) : 'No AI analysis available';
+                    break;
+                case 'crm-request':
+                    content = data.crm_request ? JSON.stringify(data.crm_request, null, 2) : 'No CRM request data available';
+                    break;
+                case 'crm-response':
+                    content = data.crm_response ? JSON.stringify(data.crm_response, null, 2) : 'No CRM response data available';
+                    break;
+            }
+            
+            return `
+                <div class="relative">
+                    <button onclick="copyToClipboard('${copyId}')" class="absolute top-2 right-2 px-2 py-1 bg-gray-200 hover:bg-gray-300 rounded text-xs">
+                        Copy
+                    </button>
+                    <pre id="${copyId}" class="bg-gray-100 p-4 rounded border text-xs font-mono overflow-x-auto max-h-96 overflow-y-auto whitespace-pre-wrap">${content}</pre>
+                </div>
+            `;
+        }
+        
+        function copyToClipboard(elementId) {
+            const element = document.getElementById(elementId);
+            const text = element.textContent;
+            navigator.clipboard.writeText(text).then(() => {
+                // Show temporary feedback
+                const button = element.previousElementSibling;
+                const originalText = button.textContent;
+                button.textContent = 'Copied!';
+                button.classList.add('bg-green-200');
+                setTimeout(() => {
+                    button.textContent = originalText;
+                    button.classList.remove('bg-green-200');
+                }, 1000);
+            });
+        }
     </script>
 </body>
 </html>

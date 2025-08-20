@@ -150,6 +150,15 @@ export class QueueService {
 
     return true;
   }
+
+  updateCompanyCrmData(companyId: string, crmRequest: string, crmResponse: string): void {
+    const stmt = db.prepare(`
+      UPDATE companies 
+      SET crm_request = ?, crm_response = ?
+      WHERE company_id = ?
+    `);
+    stmt.run(crmRequest, crmResponse, companyId);
+  }
 }
 
 export default new QueueService();

@@ -50,7 +50,7 @@ class TwentyApiService {
     return uuidRegex.test(uuid);
   }
 
-  async updateCompany(companyId: string, aiResult: any): Promise<void> {
+  async updateCompany(companyId: string, aiResult: any): Promise<{request: any, response: any}> {
     console.log(`🏢 Updating company ${companyId} with AI result`);
     
     // Validate UUID format
@@ -126,14 +126,19 @@ class TwentyApiService {
     };
 
     console.log(`📤 Sending update data to Twenty:`, JSON.stringify(updateData, null, 2));
-    await this.makeRequest(`companies/${companyId}`, 'PATCH', updateData);
+    const response = await this.makeRequest(`companies/${companyId}`, 'PATCH', updateData);
     console.log(`✅ Company ${companyId} updated successfully`);
+    
+    return {
+      request: { endpoint: `companies/${companyId}`, method: 'PATCH', data: updateData },
+      response
+    };
   }
 
-  async createPeople(companyId: string, people: any[]): Promise<void> {
+  async createPeople(companyId: string, people: any[]): Promise<{request: any, response: any}> {
     if (!people || people.length === 0) {
       console.log(`ℹ️ No people to create for company ${companyId}`);
-      return;
+      return { request: [], response: [] };
     }
     
     // Validate UUID format
@@ -142,6 +147,9 @@ class TwentyApiService {
     }
 
     console.log(`👥 Creating ${people.length} people for company ${companyId}`);
+    
+    const requests: any[] = [];
+    const responses: any[] = [];
     
     // Create people one by one since batch creation might not be supported
     for (const person of people) {
@@ -177,17 +185,26 @@ class TwentyApiService {
       };
 
       try {
-        await this.makeRequest('people', 'POST', personData);
+        const response = await this.makeRequest('people', 'POST', personData);
+        requests.push({ endpoint: 'people', method: 'POST', data: personData });
+        responses.push(response);
         console.log(`✅ Created person: ${person.first_name} ${person.last_name}`);
       } catch (error) {
         console.error(`❌ Failed to create person ${person.first_name} ${person.last_name}:`, error);
+        requests.push({ endpoint: 'people', method: 'POST', data: personData });
+        responses.push({ error: error instanceof Error ? error.message : 'Unknown error' });
         // Continue with next person rather than failing entire batch
       }
     }
     console.log(`✅ Created ${people.length} people successfully`);
+    
+    return {
+      request: requests,
+      response: responses
+    };
   }
 
-  async createNoteWithTarget(companyId: string, noteContent: any): Promise<void> {
+  async createNoteWithTarget(companyId: string, noteContent: any): Promise<{request: any, response: any}> {
     console.log(`📝 Creating note for company ${companyId}`);
     
     // Create a comprehensive note from remaining AI data
@@ -200,8 +217,13 @@ class TwentyApiService {
       },
     };
 
+    const requests: any[] = [];
+    const responses: any[] = [];
+    
     // Create the note
     const noteResponse = await this.makeRequest('notes', 'POST', noteData);
+    requests.push({ endpoint: 'notes', method: 'POST', data: noteData });
+    responses.push(noteResponse);
     
     // The actual response structure might be different, let's handle both cases
     let noteId: string | null = null;
@@ -223,11 +245,18 @@ class TwentyApiService {
         companyId: companyId,
       };
 
-      await this.makeRequest('noteTargets', 'POST', noteTargetData);
+      const linkResponse = await this.makeRequest('noteTargets', 'POST', noteTargetData);
+      requests.push({ endpoint: 'noteTargets', method: 'POST', data: noteTargetData });
+      responses.push(linkResponse);
       console.log(`✅ Note created and linked to company ${companyId}`);
     } else {
       console.log(`⚠️ Note created but could not retrieve ID for linking. Response:`, JSON.stringify(noteResponse, null, 2));
     }
+    
+    return {
+      request: requests,
+      response: responses
+    };
   }
 
   private formatNoteContent(aiResult: any): string {

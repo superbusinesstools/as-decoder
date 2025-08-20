@@ -4,6 +4,14 @@ import { validateCompanyQueue } from '../utils/validation';
 import crmApi from '../services/crmApi';
 
 export class QueueController {
+  private safeJsonParse(jsonString: string): any {
+    try {
+      return JSON.parse(jsonString);
+    } catch (error) {
+      return jsonString; // Return as string if parsing fails
+    }
+  }
+
   private validateAndNormalizeUrl(url: string): string {
     try {
       const parsedUrl = new URL(url);
@@ -208,6 +216,50 @@ export class QueueController {
         success: false,
         error: 'Internal server error',
         message: 'Failed to restart job'
+      });
+    }
+  }
+
+  async getCompanyDetail(req: Request, res: Response): Promise<void> {
+    try {
+      const { company_id } = req.params;
+
+      const company = queueService.getCompanyById(company_id);
+      
+      if (!company) {
+        res.status(404).json({
+          success: false,
+          error: 'Not found',
+          message: `Company with ID ${company_id} not found`
+        });
+        return;
+      }
+
+      const logs = queueService.getCompanyLogs(company_id);
+
+      res.json({
+        success: true,
+        data: {
+          company_id: company.company_id,
+          website_url: company.website_url,
+          status: company.status,
+          current_step: company.current_step,
+          raw_data: company.raw_data ? (typeof company.raw_data === 'string' ? company.raw_data : JSON.parse(company.raw_data)) : null,
+          processed_data: company.processed_data ? this.safeJsonParse(company.processed_data) : null,
+          crm_request: company.crm_request ? this.safeJsonParse(company.crm_request) : null,
+          crm_response: company.crm_response ? this.safeJsonParse(company.crm_response) : null,
+          error_message: company.error_message,
+          created_at: company.created_at,
+          updated_at: company.updated_at,
+          logs
+        }
+      });
+    } catch (error) {
+      console.error('Get company detail error:', error);
+      res.status(500).json({
+        success: false,
+        error: 'Internal server error',
+        message: 'Failed to get company detail'
       });
     }
   }

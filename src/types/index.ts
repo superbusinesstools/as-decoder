@@ -13,6 +13,9 @@ export interface Company {
   current_step: 'pending' | 'crawling' | 'ai_processing' | 'crm_sending' | 'completed';
   raw_data?: string;
   processed_data?: string;
+  crm_request?: string;
+  crm_response?: string;
+  error_message?: string;
   created_at: string;
   updated_at: string;
 }

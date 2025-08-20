@@ -60,6 +60,19 @@ export function initializeDatabase() {
   } catch (error) {
     // Column already exists, ignore error
   }
+
+  // Add CRM request/response columns for data visibility
+  try {
+    db.exec(`ALTER TABLE companies ADD COLUMN crm_request TEXT;`);
+  } catch (error) {
+    // Column already exists, ignore error
+  }
+
+  try {
+    db.exec(`ALTER TABLE companies ADD COLUMN crm_response TEXT;`);
+  } catch (error) {
+    // Column already exists, ignore error
+  }
 }
 
 export default db;
